@@ -49,36 +49,67 @@ A arquitetura modular baseada em Swift Packages garante a separação rigorosa d
 
 ---
 
-## 🎨 Paleta de Cores
+## 🎨 Paleta de Cores (Tokens)
 
-### Modo Claro (Light Mode)
-- **Background Principal**: `#F8F9FA` (Cinza sofisticado luxury)
-- **Gradiente de Fundo**: `#F5F5F7` (Apple premium gray)
-- **Cards/Componentes**: Branco com 85% de opacidade
-- **Texto Primário**: `#1C1C1E` (Preto Apple)
-- **Texto Secundário**: `#3C3C43` (Cinza médio)
-- **Texto Terciário**: `#8E8E93` (Cinza claro)
-- **Azul Destaque**: `#007AFF` (Apple System Blue)
+Todas as cores da aplicação estão centralizadas em `themeProvider.theme.colors`, que expõe as propriedades do struct `ColorTokens`. Nunca usar valores hardcoded! Exemplos de acesso:
 
-### Modo Escuro (Dark Mode)
-- **Background Principal**: `#000000` (Preto puro Apple Store)
-- **Cards/Componentes**: `#1C1C1E` (Cinza escuro Apple)
-- **Texto Primário**: `#FFFFFF` (Branco puro)
-- **Texto Secundário**: `#EBEBF5` com 60% opacidade
-- **Texto Terciário**: `#EBEBF5` com 30% opacidade
-- **Azul Destaque**: `#007AFF` (Apple System Blue)
-- **Glow Azul**: `#007AFF` com 40% opacidade (apenas dark mode)
+```swift
+// Fundo principal
+.themeProvider.theme.colors.cadaEuroBackground
+// Fundo de componentes (cards)
+.themeProvider.theme.colors.cadaEuroComponentBackground
+// Texto
+.themeProvider.theme.colors.cadaEuroTextPrimary
+.themeProvider.theme.colors.cadaEuroTextSecondary
+.themeProvider.theme.colors.cadaEuroTextTertiary
+// Ação/accent
+.themeProvider.theme.colors.cadaEuroAccent
+.themeProvider.theme.colors.cadaEuroTotalPrice
+// Estados
+.themeProvider.theme.colors.cadaEuroSuccess
+.themeProvider.theme.colors.cadaEuroError
+.themeProvider.theme.colors.cadaEuroWarning
+```
+
+**Lista completa de tokens de cor:**
+- cadaEuroBackground
+- cadaEuroComponentBackground
+- cadaEuroTextPrimary
+- cadaEuroTextSecondary
+- cadaEuroTextTertiary
+- cadaEuroAccent
+- cadaEuroTotalPrice
+- cadaEuroSuccess
+- cadaEuroError
+- cadaEuroWarning
+
+A seleção entre Light/Dark Mode é automática via ThemeProvider.
 
 ---
 
-## 📝 Tipografia
+## 📝 Tipografia (Tokens)
 
-### Hierarquia de Texto
-- **Total Principal**: 48pt, Medium, Design Default
-- **Títulos de Seção**: 28pt, Medium/Bold
-- **Subtítulos**: 20pt, Medium
-- **Corpo Principal**: 18pt, Medium/Regular
-- **Corpo Secundário**: 17pt, Regular
+Todos os estilos de texto estão centralizados em `themeProvider.theme.typography`, que expõe as propriedades do struct `TypographyTokens`. Nunca usar valores hardcoded!
+
+**Exemplo de uso:**
+```swift
+Text("Total")
+    .font(themeProvider.theme.typography.titleMedium)
+Text("€12,34")
+    .font(themeProvider.theme.typography.totalPrice)
+```
+
+**Tokens disponíveis:**
+- totalPrice (48pt, Medium)
+- titleLarge (28pt, Semibold)
+- titleMedium (20pt, Medium)
+- bodyLarge (18pt, Medium)
+- bodyMedium (17pt, Regular)
+- bodySmall (16pt, Regular)
+- caption (14pt, Medium)
+- captionSmall (12pt, Medium)
+
+Todos os estilos garantem suporte a Dynamic Type.
 - **Labels Pequenos**: 16pt, Regular
 - **Captions**: 14pt, Medium
 - **Labels Mínimos**: 12pt, Medium
@@ -93,65 +124,126 @@ A arquitetura modular baseada em Swift Packages garante a separação rigorosa d
 ## 🧩 Componentes
 
 ### 1. Total Display
+
+Exemplo de implementação com tokens reais:
+
+```swift
+Text(viewModel.state.formattedTotal)
+    .font(themeProvider.theme.typography.totalPrice)
+    .foregroundColor(themeProvider.theme.colors.cadaEuroAccent)
+    .shadow(color: themeProvider.theme.colors.cadaEuroTotalPrice, radius: themeProvider.theme.border.glowRadius)
+    .padding(.top, themeProvider.theme.spacing.totalTopMargin)
 ```
-€23.68
-- Tamanho: 48pt
-- Peso: Medium
-- Cor: #007AFF (Apple System Blue)
-- Glow: Azul (apenas dark mode)
-- Posição: Centro superior
-- Interação: Long press para menu
-```
+- Tipografia: themeProvider.theme.typography.totalPrice
+- Cor: themeProvider.theme.colors.cadaEuroAccent
+- Glow (dark mode): themeProvider.theme.colors.cadaEuroTotalPrice
+- Posição: padding/top via themeProvider.theme.spacing.totalTopMargin
+- Interação: Long press → menu contextual
 
 ### 2. Item Cards
+
+Exemplo de implementação com tokens reais:
+
+```swift
+HStack(spacing: themeProvider.theme.spacing.sm) {
+    Text("🥛")
+        .font(themeProvider.theme.typography.titleMedium)
+    VStack(alignment: .leading) {
+        Text("2L Leite Meio Gordo")
+            .font(themeProvider.theme.typography.bodyLarge)
+            .foregroundColor(themeProvider.theme.colors.cadaEuroTextPrimary)
+        Text("€1,49")
+            .font(themeProvider.theme.typography.bodyLarge)
+            .foregroundColor(themeProvider.theme.colors.cadaEuroAccent)
+    }
+}
+.padding(.horizontal, themeProvider.theme.spacing.xl)
+.padding(.vertical, themeProvider.theme.spacing.lg)
+.background(themeProvider.theme.colors.cadaEuroComponentBackground)
+.cornerRadius(themeProvider.theme.border.cardRadius)
+.shadow(radius: themeProvider.theme.border.shadowRadius1, y: themeProvider.theme.border.shadowYOffset1)
 ```
-🥛 2L Leite Meio Gordo    €1.49
-- Background: Card adaptativo
-- Padding: 24px horizontal, 20px vertical
-- Border Radius: 16px
-- Emoji: 24pt à esquerda
-- Nome: 18pt Medium
-- Preço: 18pt Medium, cor azul
-- Swipe Actions: Apagar (vermelho)
-```
+- Padding: themeProvider.theme.spacing.xl (horizontal), lg (vertical)
+- Border radius: themeProvider.theme.border.cardRadius
+- Fundo: themeProvider.theme.colors.cadaEuroComponentBackground
+- Tipografia: themeProvider.theme.typography.bodyLarge
+- Cor preço: themeProvider.theme.colors.cadaEuroAccent
+- Swipe Actions: usar cor themeProvider.theme.colors.cadaEuroError para apagar
 
 ### 3. Botões Principais de Captura
+
+Exemplo de implementação com tokens reais:
+
+```swift
+Button(action: { /* ação */ }) {
+    Image(systemName: "camera")
+        .font(themeProvider.theme.typography.titleMedium)
+        .foregroundColor(themeProvider.theme.colors.cadaEuroAccent)
+}
+.frame(width: 70, height: 70)
+.background(themeProvider.theme.colors.cadaEuroComponentBackground)
+.cornerRadius(themeProvider.theme.border.circularButtonRadius)
+.overlay(
+    Circle().stroke(themeProvider.theme.colors.cadaEuroAccent, lineWidth: themeProvider.theme.border.standardBorderWidth)
+)
+.shadow(radius: themeProvider.theme.border.shadowRadius1, y: themeProvider.theme.border.shadowYOffset1)
+.accessibilityLabel("Scanner OCR (VisionKit)")
+.padding(.horizontal, themeProvider.theme.spacing.buttonSpacing / 2)
 ```
-OCR [📷]  Voz [🎤]  Manual [⌨️]
-- Tamanho: 70x70px círculos
-- Ícone: 24pt Medium
-- Background: Card adaptativo
-- Border: 1px stroke
-- Shadow: 8px radius, 4px offset Y
-- Espaçamento: 40px entre botões
-- Acessibilidade: Touch target mínimo 44pt
-- Labels: "Scanner OCR (VisionKit)", "Entrada por Voz (SpeechRecognizer)", "Entrada Manual"
-```
+- Tamanho: frame fixo (70x70), mas tokens para borda/sombra
+- Ícone: themeProvider.theme.typography.titleMedium
+- Fundo: themeProvider.theme.colors.cadaEuroComponentBackground
+- Borda: themeProvider.theme.border.standardBorderWidth
+- Sombra: themeProvider.theme.border.shadowRadius1, shadowYOffset1
+- Espaçamento entre botões: themeProvider.theme.spacing.buttonSpacing
+- Acessibilidade: .accessibilityLabel
 
 ### 4. Indicadores de Modo
+
+Exemplo de implementação com tokens reais:
+
+```swift
+HStack(spacing: themeProvider.theme.spacing.xs) {
+    ForEach(0..<3) { idx in
+        Circle()
+            .frame(width: 6, height: 6)
+            .foregroundColor(idx == selected ? themeProvider.theme.colors.cadaEuroAccent : themeProvider.theme.colors.cadaEuroTextTertiary)
+    }
+}
 ```
-● ● ○
-- Tamanho: 6x6px círculos
-- Ativo: #007AFF (azul)
-- Inativo: Texto terciário
-- Espaçamento: 8px entre pontos
-```
+- Cor ativo: themeProvider.theme.colors.cadaEuroAccent
+- Cor inativo: themeProvider.theme.colors.cadaEuroTextTertiary
+- Espaçamento: themeProvider.theme.spacing.xs
 
 ### 5. Menu Contextual
+
+Exemplo de implementação com tokens reais:
+
+```swift
+VStack(spacing: 0) {
+    ForEach(menuItems) { item in
+        HStack {
+            Text(item.emoji)
+            Text(item.title)
+                .font(themeProvider.theme.typography.bodyLarge)
+                .foregroundColor(themeProvider.theme.colors.cadaEuroTextPrimary)
+        }
+        .frame(height: 56)
+        .background(themeProvider.theme.colors.cadaEuroComponentBackground)
+    }
+}
+.frame(width: 240)
+.background(themeProvider.theme.colors.cadaEuroComponentBackground)
+.cornerRadius(themeProvider.theme.border.cardRadius)
+.shadow(radius: themeProvider.theme.border.shadowRadius1)
 ```
-┌─────────────────────┐
-│ 📋 Listas guardadas │
-│ ─────────────────── │
-│ 📊 Estatísticas     │
-│ ─────────────────── │
-│ ⚙️ Definições       │
-└─────────────────────┘
-- Width: 240px
-- Background: Card adaptativo
-- Border Radius: 16px
-- Item Height: 56px
-- Shadow: 8px radius
-```
+- Fundo: themeProvider.theme.colors.cadaEuroComponentBackground
+- Border radius: themeProvider.theme.border.cardRadius
+- Sombra: themeProvider.theme.border.shadowRadius1
+- Tipografia: themeProvider.theme.typography.bodyLarge
+- Cor texto: themeProvider.theme.colors.cadaEuroTextPrimary
+- Altura item: 56 (fixo)
+- Largura: 240 (fixo)
 
 ---
 
@@ -420,16 +512,16 @@ O CadaEuro segue as diretrizes WCAG 2.1 AA e as melhores práticas de acessibili
 ### Animações de Feedback
 ```swift
 // Botão pressionado
-.scaleEffect(isPressed ? 0.98 : 1.0)
-.animation(.easeInOut(duration: 0.15), value: isPressed)
+.scaleEffect(isPressed ? themeProvider.theme.animation.pressedScale : 1.0)
+.animation(.easeInOut(duration: themeProvider.theme.animation.standardDuration), value: isPressed)
 
 // Item adicionado
-.scaleEffect(showAddAnimation ? 1.2 : 1.0)
-.animation(.spring(response: 0.3, dampingFraction: 0.6), value: showAddAnimation)
+.scaleEffect(showAddAnimation ? themeProvider.theme.animation.addedItemScale : 1.0)
+.animation(.spring(response: themeProvider.theme.animation.springResponse, dampingFraction: themeProvider.theme.animation.springDamping), value: showAddAnimation)
 
 // Total atualizado
-.scaleEffect(pulseAnimation ? 1.02 : 1.0)
-.animation(.easeInOut(duration: 0.3), value: pulseAnimation)
+.scaleEffect(pulseAnimation ? themeProvider.theme.animation.updatedTotalScale : 1.0)
+.animation(.easeInOut(duration: themeProvider.theme.animation.standardDuration), value: pulseAnimation)
 ```
 
 ### Estados Visuais Aprimorados

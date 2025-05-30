@@ -1,4 +1,5 @@
 import SwiftUI
+import CadaEuroKit
 
 /// Componente que exibe o total da lista de compras
 public struct TotalDisplay: View {
@@ -69,10 +70,8 @@ public struct TotalDisplay: View {
     }
     
     /// Fornece feedback háptico
-    private func hapticFeedback(_ style: UIImpactFeedbackGenerator.FeedbackStyle) {
-        let generator = UIImpactFeedbackGenerator(style: style)
-        generator.prepare()
-        generator.impactOccurred()
+    private func hapticFeedback(_ type: HapticManager.FeedbackType) {
+        HapticManager.shared.feedback(type)
     }
 }
 
@@ -83,7 +82,7 @@ public struct TotalDisplay: View {
         }
     }
     .frame(maxWidth: .infinity, maxHeight: .infinity)
-    .background(Color(UIColor.systemBackground))
+    .background(themeProvider.theme.colors.cadaEuroBackground)
     .withThemeProvider(ThemeProvider())
 }
 

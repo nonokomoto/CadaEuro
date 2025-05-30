@@ -19,6 +19,7 @@ let package = Package(
         // Dependências internas
         .package(path: "../CadaEuroDomain"),
         .package(path: "../CadaEuroKit"),
+        
     ],
     targets: [
         // Targets are the basic building blocks of a package, defining a module or a test suite.

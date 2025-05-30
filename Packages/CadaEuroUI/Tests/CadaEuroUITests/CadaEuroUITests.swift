@@ -1,6 +1,9 @@
-import Testing
-@testable import CadaEuroUI
+import XCTest
 
-@Test func example() async throws {
-    // Write your test here and use APIs like `#expect(...)` to check expected conditions.
+final class CadaEuroUITests: XCTestCase {
+    
+    func testBasicFunctionality() {
+        // Teste simples para verificar se o teste está funcionando
+        XCTAssertTrue(true, "Teste básico passou")
+    }
 }
