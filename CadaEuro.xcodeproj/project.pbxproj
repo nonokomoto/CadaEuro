@@ -208,6 +208,15 @@
 			);
 			mainGroup = 589CB2502DE9F78A00CFD0B0;
 			minimizedProjectReferenceProxies = 1;
+			packageReferences = (
+				589CB2992DE9F80500CFD0B0 /* XCLocalSwiftPackageReference "Packages/CadaEuroUI" */,
+				589CB29A2DE9F85A00CFD0B0 /* XCLocalSwiftPackageReference "Packages/CadaEuroSpeech" */,
+				589CB29B2DE9F86700CFD0B0 /* XCLocalSwiftPackageReference "Packages/CadaEuroOCR" */,
+				589CB29C2DE9F87400CFD0B0 /* XCLocalSwiftPackageReference "Packages/CadaEuroLLM" */,
+				589CB29D2DE9F88000CFD0B0 /* XCLocalSwiftPackageReference "Packages/CadaEuroKit" */,
+				589CB29E2DE9F88B00CFD0B0 /* XCLocalSwiftPackageReference "Packages/CadaEuroDomain" */,
+				589CB29F2DE9F89900CFD0B0 /* XCLocalSwiftPackageReference "Packages/CadaEuroData" */,
+			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = 589CB25A2DE9F78B00CFD0B0 /* Products */;
 			projectDirPath = "";
@@ -575,6 +584,37 @@
 			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */
+
+/* Begin XCLocalSwiftPackageReference section */
+		589CB2992DE9F80500CFD0B0 /* XCLocalSwiftPackageReference "Packages/CadaEuroUI" */ = {
+			isa = XCLocalSwiftPackageReference;
+			relativePath = Packages/CadaEuroUI;
+		};
+		589CB29A2DE9F85A00CFD0B0 /* XCLocalSwiftPackageReference "Packages/CadaEuroSpeech" */ = {
+			isa = XCLocalSwiftPackageReference;
+			relativePath = Packages/CadaEuroSpeech;
+		};
+		589CB29B2DE9F86700CFD0B0 /* XCLocalSwiftPackageReference "Packages/CadaEuroOCR" */ = {
+			isa = XCLocalSwiftPackageReference;
+			relativePath = Packages/CadaEuroOCR;
+		};
+		589CB29C2DE9F87400CFD0B0 /* XCLocalSwiftPackageReference "Packages/CadaEuroLLM" */ = {
+			isa = XCLocalSwiftPackageReference;
+			relativePath = Packages/CadaEuroLLM;
+		};
+		589CB29D2DE9F88000CFD0B0 /* XCLocalSwiftPackageReference "Packages/CadaEuroKit" */ = {
+			isa = XCLocalSwiftPackageReference;
+			relativePath = Packages/CadaEuroKit;
+		};
+		589CB29E2DE9F88B00CFD0B0 /* XCLocalSwiftPackageReference "Packages/CadaEuroDomain" */ = {
+			isa = XCLocalSwiftPackageReference;
+			relativePath = Packages/CadaEuroDomain;
+		};
+		589CB29F2DE9F89900CFD0B0 /* XCLocalSwiftPackageReference "Packages/CadaEuroData" */ = {
+			isa = XCLocalSwiftPackageReference;
+			relativePath = Packages/CadaEuroData;
+		};
+/* End XCLocalSwiftPackageReference section */
 	};
 	rootObject = 589CB2512DE9F78A00CFD0B0 /* Project object */;
 }
