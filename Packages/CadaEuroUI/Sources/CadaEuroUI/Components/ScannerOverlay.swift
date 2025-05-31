@@ -389,11 +389,11 @@ public struct ScannerOverlay: View {
         // ✅ OPCIONAL: Mais analytics tracking
         print("📊 Analytics: \(CaptureMethod.scanner.analyticsName) - processing_started")
         
-        DispatchQueue.main.asyncAfter(deadline: .now() + PerformanceConstants.imageProcessingTimeoutSeconds) {  // ✅ USAR PerformanceConstants
+        DispatchQueue.main.asyncAfter(deadline: .now() + PerformanceConstants.imageProcessingTimeoutSeconds) {
             scannerState = .processing
             isScanning = false
             
-            DispatchQueue.main.asyncAfter(deadline: .now() + PerformanceConstants.llmTimeoutSeconds) {  // ✅ USAR PerformanceConstants
+            DispatchQueue.main.asyncAfter(deadline: .now() + PerformanceConstants.llmTimeoutSeconds) {
                 // Simula diferentes tipos de erro baseado em probabilidade
                 let errorProbability = Double.random(in: 0...1)
                 
@@ -408,20 +408,43 @@ public struct ScannerOverlay: View {
                     print("📊 Analytics: \(CaptureMethod.scanner.analyticsName) - scan_failed - \(randomError)")
                     handleError(randomError)
                 } else {
-                    // Simula sucesso
-                    let mockProducts = [
-                        ("Leite Mimosa", 1.29),
-                        ("Pão de Forma", 0.89),
-                        ("Iogurte Natural", 2.49),
-                        ("Queijo Flamengo", 3.99),
-                        ("Azeite Virgem", 4.29)
+                    // ✅ USAR StringExtensions: Simulação com texto OCR realista
+                    let mockOCRTexts = [
+                        "Le1te M1m0sa €1,29",
+                        "Pão de F0rma €0,89", 
+                        "l0gurte Natural €2,49",
+                        "Que1j0 Flam3ngo €3,99",
+                        "Aze1te V1rgem €4,29"
                     ]
-                    let product = mockProducts.randomElement()!
-                    print("📊 Analytics: \(CaptureMethod.scanner.analyticsName) - scan_success - \(product.0)")
-                    scannerState = .success(product.0, product.1)
                     
-                    DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) {
-                        onItemScanned(product.0, product.1)
+                    let rawOCRText = mockOCRTexts.randomElement()!
+                    
+                    // ✅ USAR StringExtensions: Limpeza OCR + Parse inteligente
+                    let cleanedText = rawOCRText.cleanOCRText
+                    let (productName, price) = cleanedText.extractProductAndPrice()
+                    
+                    // ✅ USAR StringExtensions: Normalização do nome produto
+                    let normalizedName = productName.normalizedProductName
+                    
+                    // ✅ USAR StringExtensions: Validação antes de retornar
+                    if normalizedName.isValidProductName && (price?.isValidPrice ?? false) {
+                        print("📊 Analytics: \(CaptureMethod.scanner.analyticsName) - scan_success - \(normalizedName)")
+                        scannerState = .success(normalizedName, price)
+                        
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) {
+                            onItemScanned(normalizedName, price)
+                        }
+                    } else {
+                        // ✅ Fallback: Se parsing falhar, tenta texto original
+                        let fallbackPrice = cleanedText.extractAllPrices().first
+                        let fallbackName = cleanedText.trimmedAndCleaned
+                        
+                        print("📊 Analytics: \(CaptureMethod.scanner.analyticsName) - scan_partial - \(fallbackName)")
+                        scannerState = .success(fallbackName, fallbackPrice)
+                        
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) {
+                            onItemScanned(fallbackName, fallbackPrice)
+                        }
                     }
                 }
             }

@@ -229,65 +229,66 @@ public struct ManualInputForm: View {
     // MARK: - Methods
     
     private func validateProductName(_ name: String) {
-        let trimmedName = name.trimmingCharacters(in: .whitespacesAndNewlines)
-        
-        if trimmedName.isEmpty {
-            nameError = .emptyName
-        } else if trimmedName.count > BusinessRules.maxProductNameLength {  // ✅ USAR BusinessRules
-            nameError = .nameTooLong
+        // ✅ USAR StringExtensions: Validação centralizada
+        if !name.isValidProductName {
+            if name.trimmedAndCleaned.isEmpty {
+                nameError = .emptyName
+            } else if name.trimmedAndCleaned.count > BusinessRules.maxProductNameLength {
+                nameError = .nameTooLong
+            } else {
+                nameError = .emptyName // Fallback para outros casos inválidos
+            }
         } else {
             nameError = nil
         }
     }
     
     private func formatAndValidatePrice(_ text: String) {
-        // Remove tudo exceto dígitos e vírgula
-        let cleaned = text.replacingOccurrences(of: "[^0-9,]", with: "", options: .regularExpression)
-        
-        // Permite apenas uma vírgula
-        let components = cleaned.components(separatedBy: ",")
-        var formatted = components.first ?? ""
-        
-        if components.count > 1 {
-            let decimals = String(components[1].prefix(2)) // Máx 2 casas decimais
-            formatted += "," + decimals
+        // ✅ USAR StringExtensions: Validação de formato de preço
+        if !text.isValidPriceInput && !text.isEmpty {
+            // Limpa caracteres inválidos automaticamente
+            let cleaned = text.filter { "0123456789,".contains($0) }
+            
+            // Permite apenas uma vírgula
+            let components = cleaned.components(separatedBy: ",")
+            var formatted = components.first ?? ""
+            
+            if components.count > 1 {
+                let decimals = String(components[1].prefix(2))
+                formatted += "," + decimals
+            }
+            
+            if formatted != priceText {
+                priceText = formatted
+            }
         }
         
-        // Atualiza apenas se mudou
-        if formatted != priceText {
-            priceText = formatted
-        }
-        
-        // ✅ USAR DoubleExtensions: Validação com BusinessRules integradas
-        let price = parsePrice(from: formatted)
-        
-        if formatted.isEmpty {
+        // ✅ USAR StringExtensions: Parse português integrado
+        if text.isEmpty {
             priceError = .invalidPrice
-        } else if !price.isValidPrice {  // ✅ USAR DoubleExtensions.isValidPrice
-            priceError = .priceOutOfRange
-        } else {
+        } else if let price = text.extractPortuguesePrice(), price.isValidPrice {
             priceError = nil
+        } else {
+            priceError = .priceOutOfRange
         }
     }
     
     private func parsePrice(from text: String) -> Double {
-        // ✅ USAR DoubleExtensions: Método centralizado para parsing português
-        return Double.fromPortugueseString(text) ?? 0.0
+        // ✅ USAR StringExtensions: Parse centralizado
+        return text.extractPortuguesePrice() ?? 0.0
     }
     
     private func handleAddProduct() {
         guard isFormValid else { return }
         
-        // ✅ ADICIONADO: Analytics tracking
-        print("📊 Analytics: \(CaptureMethod.manual.analyticsName) - product_added")
-        
-        let trimmedName = productName.trimmingCharacters(in: .whitespacesAndNewlines)
+        // ✅ USAR StringExtensions: Normalização de nome de produto
+        let normalizedName = productName.normalizedProductName
         let price = parsePrice(from: priceText)
         
-        let productData = ProductData(name: trimmedName, price: price, captureMethod: .manual)
+        let productData = ProductData(name: normalizedName, price: price, captureMethod: .manual)
         onAdd(productData)
         
-        // Reset form com formatação segura
+        // Reset form com limpeza padronizada
         productName = ""
         priceText = ""
         nameError = nil

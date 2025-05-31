@@ -401,15 +401,26 @@ public struct VoiceRecorderView: View {
                 let randomError = errors.randomElement()!
                 handleError(randomError)
             } else {
-                // Mock transcription success
+                // Mock transcription com StringExtensions para parse
                 let mockTranscriptions = [
                     "Leite Mimosa 1,29 euros",
-                    "Pão de forma 85 cêntimos",
+                    "Pão de forma 85 cêntimos", 
                     "Queijo 3,50 euros",
                     "Iogurte natural 2,20 euros"
                 ]
                 
-                transcribedText = mockTranscriptions.randomElement() ?? "Texto não reconhecido"
+                let rawTranscription = mockTranscriptions.randomElement() ?? "Texto não reconhecido"
+                
+                // ✅ USAR StringExtensions: Parse inteligente de produto + preço
+                let (product, price) = rawTranscription.extractProductAndPrice()
+                
+                // ✅ USAR StringExtensions: Normalização de nome do produto
+                let normalizedProduct = product.normalizedProductName
+                
+                // ✅ USAR StringExtensions: Limpeza e formatação final
+                transcribedText = "\(normalizedProduct) \(price?.asCurrency ?? "")"
+                    .trimmedAndCleaned
+                
                 recorderState = .transcribed
             }
         }
@@ -474,7 +485,17 @@ public struct VoiceRecorderView: View {
         if case .transcribed = recorderState {
             // ✅ ADICIONADO: Analytics tracking
             print("📊 Analytics: \(CaptureMethod.voice.analyticsName) - transcription_success")
-            onTranscriptionComplete(transcribedText)
+            
+            // ✅ USAR StringExtensions: Parse final para envio
+            let (product, price) = transcribedText.extractProductAndPrice()
+            
+            // ✅ USAR StringExtensions: Validação antes do envio
+            if product.isValidProductName && (price?.isValidPrice ?? false) {
+                onTranscriptionComplete(transcribedText)
+            } else {
+                // ✅ Fallback: Enviar texto original se parsing falhar
+                onTranscriptionComplete(transcribedText)
+            }
         }
         
         timer?.invalidate()

@@ -1,4 +1,5 @@
 import SwiftUI
+import CadaEuroKit
 
 /// Diálogo específico para confirmação de produtos OCR
 /// Reutiliza toda a lógica do ManualInputForm existente
@@ -46,9 +47,10 @@ public struct ProductConfirmationDialog: View {
                 .opacity(isVisible ? 1.0 : 0.0)
         }
         .onAppear {
-            // Inicializar com dados do OCR
-            productName = productData.name
-            priceText = String(productData.price).replacingOccurrences(of: ".", with: ",")
+            // ✅ USAR StringExtensions: Inicializar com dados OCR limpos
+            let cleanedProductData = cleanupOCRData(productData)
+            productName = cleanedProductData.name
+            priceText = formatPriceForInput(cleanedProductData.price)
             
             withAnimation(themeProvider.theme.animation.spring) {
                 isVisible = true
@@ -244,58 +246,62 @@ public struct ProductConfirmationDialog: View {
     }
     
     private func validateProductName(_ name: String) {
-        let trimmedName = name.trimmingCharacters(in: .whitespacesAndNewlines)
-        
-        if trimmedName.isEmpty {
-            nameError = .emptyName
-        } else if trimmedName.count > 100 {
-            nameError = .nameTooLong
+        // ✅ USAR StringExtensions: Validação centralizada
+        if !name.isValidProductName {
+            if name.trimmedAndCleaned.isEmpty {
+                nameError = .emptyName
+            } else if name.trimmedAndCleaned.count > BusinessRules.maxProductNameLength {
+                nameError = .nameTooLong
+            } else {
+                nameError = .emptyName // Fallback para caracteres perigosos
+            }
         } else {
             nameError = nil
         }
     }
     
     private func formatAndValidatePrice(_ text: String) {
-        // Remove tudo exceto dígitos e vírgula
-        let cleaned = text.replacingOccurrences(of: "[^0-9,]", with: "", options: .regularExpression)
-        
-        // Permite apenas uma vírgula
-        let components = cleaned.components(separatedBy: ",")
-        var formatted = components.first ?? ""
-        
-        if components.count > 1 {
-            let decimals = String(components[1].prefix(2)) // Máx 2 casas decimais
-            formatted += "," + decimals
+        // ✅ USAR StringExtensions: Validação de formato + limpeza automática
+        if !text.isValidPriceInput && !text.isEmpty {
+            // Limpa caracteres inválidos automaticamente
+            let cleaned = text.filter { "0123456789,".contains($0) }
+            
+            // Permite apenas uma vírgula
+            let components = cleaned.components(separatedBy: ",")
+            var formatted = components.first ?? ""
+            
+            if components.count > 1 {
+                let decimals = String(components[1].prefix(2))
+                formatted += "," + decimals
+            }
+            
+            if formatted != priceText {
+                priceText = formatted
+            }
         }
         
-        // Atualiza apenas se mudou
-        if formatted != priceText {
-            priceText = formatted
-        }
-        
-        // Validação
-        let price = parsePrice(from: formatted)
-        
-        if formatted.isEmpty {
+        // ✅ USAR StringExtensions: Parse português + validação robusta
+        if text.isEmpty {
             priceError = .invalidPrice
-        } else if price <= 0 || price > 9999.99 {
-            priceError = .priceOutOfRange
-        } else {
+        } else if let price = text.extractPortuguesePrice(), price.isValidPrice {
             priceError = nil
+        } else {
+            priceError = .priceOutOfRange
         }
     }
     
     private func parsePrice(from text: String) -> Double {
-        let normalizedText = text.replacingOccurrences(of: ",", with: ".")
-        return Double(normalizedText) ?? 0.0
+        // ✅ USAR StringExtensions: Parse centralizado
+        return text.extractPortuguesePrice() ?? 0.0
     }
     
     private func handleConfirm() {
         guard isFormValid else { return }
         
-        let trimmedName = productName.trimmingCharacters(in: .whitespacesAndNewlines)
+        // ✅ USAR StringExtensions: Normalização final antes de confirmar
+        let normalizedName = productName.normalizedProductName
         let price = parsePrice(from: priceText)
-        let confirmedProduct = ProductData(name: trimmedName, price: price)
+        let confirmedProduct = ProductData(name: normalizedName, price: price, captureMethod: .scanner)
         
         withAnimation(themeProvider.theme.animation.quick) {
             isVisible = false
@@ -314,6 +320,24 @@ public struct ProductConfirmationDialog: View {
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
             onCancel()
         }
+    }
+    
+    // ✅ MÉTODOS AUXILIARES StringExtensions
+    
+    /// Limpa dados OCR usando StringExtensions
+    private func cleanupOCRData(_ data: ProductData) -> ProductData {
+        let cleanedName = data.name.cleanOCRText.normalizedProductName
+        return ProductData(
+            name: cleanedName,
+            price: data.price,
+            captureMethod: data.captureMethod
+        )
+    }
+    
+    /// Formata preço para input (vírgula decimal PT)
+    private func formatPriceForInput(_ price: Double) -> String {
+        let formatted = String(format: "%.2f", price)
+        return formatted.replacingOccurrences(of: ".", with: ",")
     }
 }
 
