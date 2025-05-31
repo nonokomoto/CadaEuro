@@ -60,9 +60,8 @@ import SwiftUI
         // No iOS 17+, podemos usar diretamente o SensoryFeedback
         // Numa aplicação real, isto seria integrado com as views
         // Para simular o efeito, estamos a chamar programaticamente
-        SensoryFeedback.prepare(feedback)
-        // Nota: Numa aplicação real, o feedback seria acionado pela view
-        // através do modificador .sensoryFeedback()
+        // Em SwiftUI 6, o feedback sensorial deve ser aplicado via .sensoryFeedback() nas views.
+        // Não existe API programática para disparar SensoryFeedback fora de uma View.
         #endif
     }
 }

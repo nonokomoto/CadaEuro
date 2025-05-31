@@ -58,6 +58,12 @@ public struct SpacingTokens {
     /// Margem superior para os botões (40px)
     public var buttonsTopMargin: CGFloat { xxl }
     
+    /// Espaçamento entre elementos de navegação (16px)
+    public var navigationItemSpacing: CGFloat { sm }
+    
+    /// Padding interno para modais (24px)
+    public var modalPadding: CGFloat { xl }
+    
     // MARK: - Initializer
     /// Inicializa os tokens de espaçamento com os valores padrão
     public init() {

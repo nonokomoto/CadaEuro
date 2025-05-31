@@ -9,7 +9,7 @@
    - **SwiftUI** exclusivamente (nunca UIKit)
    - **SwiftData** para persistência
    - **Environment API moderno** com `@Environment(\.themeProvider)`
-   - **@Observable** (Swift 5.9) para gestão de estado
+   - 
 
 3. **Arquitetura Modular**: Respeitar rigorosamente a separação em Swift Packages:
 ```

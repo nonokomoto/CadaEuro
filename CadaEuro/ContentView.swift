@@ -7,55 +7,34 @@
 
 import SwiftUI
 import SwiftData
+import CadaEuroUI
 
 struct ContentView: View {
     @Environment(\.modelContext) private var modelContext
+    @Environment(\.themeProvider) private var themeProvider
     @Query private var items: [Item]
 
     var body: some View {
-        NavigationSplitView {
-            List {
-                ForEach(items) { item in
-                    NavigationLink {
-                        Text("Item at \(item.timestamp, format: Date.FormatStyle(date: .numeric, time: .standard))")
-                    } label: {
-                        Text(item.timestamp, format: Date.FormatStyle(date: .numeric, time: .standard))
-                    }
-                }
-                .onDelete(perform: deleteItems)
-            }
-            .toolbar {
-                ToolbarItem(placement: .navigationBarTrailing) {
-                    EditButton()
-                }
-                ToolbarItem {
-                    Button(action: addItem) {
-                        Label("Add Item", systemImage: "plus")
-                    }
-                }
-            }
-        } detail: {
-            Text("Select an item")
+        VStack(spacing: themeProvider.theme.spacing.lg) {
+            Text("Hello World")
+                .font(themeProvider.theme.typography.titleLarge)
+                .foregroundColor(themeProvider.theme.colors.cadaEuroTextPrimary)
+            
+            Text("CadaEuro Theme Provider Funcionando!")
+                .font(themeProvider.theme.typography.bodyLarge)
+                .foregroundColor(themeProvider.theme.colors.cadaEuroTextSecondary)
+            
+            Text("€99.99")
+                .font(themeProvider.theme.typography.totalPrice)
+                .foregroundColor(themeProvider.theme.colors.cadaEuroAccent)
         }
-    }
-
-    private func addItem() {
-        withAnimation {
-            let newItem = Item(timestamp: Date())
-            modelContext.insert(newItem)
-        }
-    }
-
-    private func deleteItems(offsets: IndexSet) {
-        withAnimation {
-            for index in offsets {
-                modelContext.delete(items[index])
-            }
-        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .background(themeProvider.theme.colors.cadaEuroBackground)
     }
 }
 
 #Preview {
     ContentView()
         .modelContainer(for: Item.self, inMemory: true)
+        .themeProvider(.preview)
 }

@@ -376,7 +376,6 @@ CadaEuro é uma aplicação premium de lista de compras para iOS 17+ que ajuda c
 
 ### Gestão de Estado
 **State Container**:
-- @Observable (Swift 5.9)
 - ViewModel por ecrã
 - Reducers isolados para facilitar testes
 

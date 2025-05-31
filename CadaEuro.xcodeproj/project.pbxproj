@@ -6,6 +6,10 @@
 	objectVersion = 77;
 	objects = {
 
+/* Begin PBXBuildFile section */
+		589CB2C72DEA135900CFD0B0 /* CadaEuroUI in Frameworks */ = {isa = PBXBuildFile; productRef = 589CB2C62DEA135900CFD0B0 /* CadaEuroUI */; };
+/* End PBXBuildFile section */
+
 /* Begin PBXContainerItemProxy section */
 		589CB26B2DE9F78D00CFD0B0 /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
@@ -65,6 +69,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				589CB2C72DEA135900CFD0B0 /* CadaEuroUI in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -91,6 +96,7 @@
 				589CB25B2DE9F78B00CFD0B0 /* CadaEuro */,
 				589CB26D2DE9F78D00CFD0B0 /* CadaEuroTests */,
 				589CB2772DE9F78D00CFD0B0 /* CadaEuroUITests */,
+				589CB2C52DEA135900CFD0B0 /* Frameworks */,
 				589CB25A2DE9F78B00CFD0B0 /* Products */,
 			);
 			sourceTree = "<group>";
@@ -103,6 +109,13 @@
 				589CB2742DE9F78D00CFD0B0 /* CadaEuroUITests.xctest */,
 			);
 			name = Products;
+			sourceTree = "<group>";
+		};
+		589CB2C52DEA135900CFD0B0 /* Frameworks */ = {
+			isa = PBXGroup;
+			children = (
+			);
+			name = Frameworks;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -125,6 +138,7 @@
 			);
 			name = CadaEuro;
 			packageProductDependencies = (
+				589CB2C62DEA135900CFD0B0 /* CadaEuroUI */,
 			);
 			productName = CadaEuro;
 			productReference = 589CB2592DE9F78B00CFD0B0 /* CadaEuro.app */;
@@ -615,6 +629,14 @@
 			relativePath = Packages/CadaEuroData;
 		};
 /* End XCLocalSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		589CB2C62DEA135900CFD0B0 /* CadaEuroUI */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 589CB2992DE9F80500CFD0B0 /* XCLocalSwiftPackageReference "Packages/CadaEuroUI" */;
+			productName = CadaEuroUI;
+		};
+/* End XCSwiftPackageProductDependency section */
 	};
 	rootObject = 589CB2512DE9F78A00CFD0B0 /* Project object */;
 }

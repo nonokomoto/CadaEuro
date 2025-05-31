@@ -7,6 +7,7 @@
 
 import SwiftUI
 import SwiftData
+import CadaEuroUI
 
 @main
 struct CadaEuroApp: App {
@@ -26,6 +27,7 @@ struct CadaEuroApp: App {
     var body: some Scene {
         WindowGroup {
             ContentView()
+                .cadaEuroTheme() // ✅ Injeção única do tema aqui
         }
         .modelContainer(sharedModelContainer)
     }

@@ -13,7 +13,7 @@ trigger: always_on
    - **SwiftUI** exclusivamente (nunca UIKit)
    - **SwiftData** para persistência
    - **Environment API moderno** com `@Environment(\.themeProvider)`
-   - **@Observable** (Swift 5.9) para gestão de estado
+   - 
 
 CONFIRMAR SEMPRE COM ARQUIVO THEME ANTES DE USAR QUALQUER COISA REFERENTE AO DESIGN
 
@@ -34,15 +34,7 @@ CadaEuro/
 
 ### ThemeProvider
 
-Usar o ThemeProvider via Environment API moderno:
 
-```swift
-// Acesso nas views
-@Environment(\.themeProvider) private var themeProvider
-
-// Injeção no ponto de entrada
-.environment(\.themeProvider, ThemeProvider())
-```
 
 ### Tokens de Design
 
@@ -80,47 +72,7 @@ themeProvider.theme.spacing.xxl               // 40px (espaçamento seções)
 themeProvider.theme.spacing.xxxl              // 80px (espaçamento grande)
 ```
 
-## Padrões de Implementação
 
-### Gestão de Estado
-```swift
-// State Container com @Observable
-@Observable
-final class ShoppingListState {
-    var items: [ShoppingItem] = []
-    var totalPrice: Double = 0.0
-    var isLoading: Bool = false
-    var errorMessage: String? = nil
-    
-    // Computed properties
-    var formattedTotal: String {
-        totalPrice.formatAsCurrency()
-    }
-}
-```
-
-### Exemplo de View
-```swift
-struct ShoppingView: View {
-    @Environment(\.themeProvider) private var themeProvider
-    @State private var viewModel = ShoppingViewModel()
-    
-    var body: some View {
-        VStack(spacing: themeProvider.theme.spacing.lg) {
-            Text("Total")
-                .font(themeProvider.theme.typography.titleMedium)
-                .foregroundColor(themeProvider.theme.colors.cadaEuroTextPrimary)
-                
-            Text(viewModel.state.formattedTotal)
-                .font(themeProvider.theme.typography.totalPrice)
-                .foregroundColor(themeProvider.theme.colors.cadaEuroAccent)
-                
-            // Lista de itens...
-        }
-        .padding(.horizontal, themeProvider.theme.spacing.lg)
-    }
-}
-```
 
 ## Objetivos Técnicos
 

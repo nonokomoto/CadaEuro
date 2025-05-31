@@ -29,6 +29,8 @@ public struct AppTheme {
 
 /// Extensão para fornecer um tema padrão para previews
 public extension AppTheme {
+    @MainActor
     static let lightPreview = AppTheme(colorScheme: .light)
+    @MainActor
     static let darkPreview = AppTheme(colorScheme: .dark)
 }

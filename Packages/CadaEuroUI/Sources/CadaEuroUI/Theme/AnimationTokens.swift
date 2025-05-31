@@ -61,4 +61,14 @@ public struct AnimationTokens {
     public var spring: Animation {
         .spring(response: springResponse, dampingFraction: springDamping)
     }
+    
+    /// Animação para transições de navegação
+    public var navigation: Animation {
+        .easeInOut(duration: longDuration)
+    }
+    
+    /// Animação para feedback de elementos pressionados
+    public var buttonPress: Animation {
+        .easeInOut(duration: shortDuration)
+    }
 }

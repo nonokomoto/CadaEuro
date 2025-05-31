@@ -36,6 +36,13 @@ public struct ColorTokens {
     /// Cor para indicar aviso
     public let cadaEuroWarning: Color
     
+    // MARK: - Interactive
+    /// Cor para elementos interativos em estado disabled
+    public let cadaEuroDisabled: Color
+    
+    /// Cor para bordas e separadores
+    public let cadaEuroSeparator: Color
+    
     // MARK: - Initializer
     /// Inicializa os tokens de cores com base no esquema de cores atual
     public init(colorScheme: ColorScheme) {
@@ -52,6 +59,8 @@ public struct ColorTokens {
             self.cadaEuroSuccess = Color.green
             self.cadaEuroError = Color.red
             self.cadaEuroWarning = Color.orange
+            self.cadaEuroDisabled = Color(hex: "#3A3A3C")
+            self.cadaEuroSeparator = Color(hex: "#38383A")
             
         default:
             // Light Mode
@@ -65,6 +74,8 @@ public struct ColorTokens {
             self.cadaEuroSuccess = Color.green
             self.cadaEuroError = Color.red
             self.cadaEuroWarning = Color.orange
+            self.cadaEuroDisabled = Color(hex: "#C7C7CC")
+            self.cadaEuroSeparator = Color(hex: "#C6C6C8")
         }
     }
 }

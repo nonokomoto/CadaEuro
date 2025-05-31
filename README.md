@@ -3,7 +3,6 @@
 Aplicação premium de lista de compras para iOS 17+ que ajuda consumidores a controlar em tempo real o total das compras de supermercado. Combina tecnologia avançada (OCR, reconhecimento de voz, LLM) com design elegante inspirado na Apple Store.
 
 ![iOS 17+](https://img.shields.io/badge/iOS-17%2B-blue)
-![Swift 5.9](https://img.shields.io/badge/Swift-5.9-orange)
 ![SwiftUI](https://img.shields.io/badge/Framework-SwiftUI-purple)
 ![License](https://img.shields.io/badge/License-Proprietary-red)
 
@@ -74,7 +73,7 @@ O projeto implementa uma estratégia de testes abrangente:
 
 - iOS 17.0 ou superior
 - Xcode 15.0 ou superior
-- Swift 5.9 ou superior
+- Swift 6 ou superior
 
 ## 🚀 Instalação
 

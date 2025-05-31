@@ -81,11 +81,6 @@ Idêntico, substituindo VisionKit por SpeechRecognizer.
 
 ---
 
-## 6. Gestão de Estado
-
-Implementar State Container com @Observable (Swift 5.9) + ViewModel por ecrã. Reducers isolados facilitam testes.
-
----
 
 ## 7. Dependências & Gestão de Pacotes
 

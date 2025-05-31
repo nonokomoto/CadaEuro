@@ -6,13 +6,11 @@ O CadaEuro é uma aplicação premium para iOS 17+ que ajuda consumidores a cont
 
 ---
 
-## 🖌️ ThemeProvider e Gestão de Estado
 
 Para garantir a consistência visual e o alinhamento total ao Design System, todas as views SwiftUI devem aceder ao tema global através do ThemeProvider, que é injectado no ponto de entrada da app.
 
 - Usa sempre `@Environment(\.themeProvider) private var themeProvider` nas tuas views para aceder ao tema.
 - Nunca criar instâncias locais de AppTheme ou duplicar tokens; usa sempre o tema global.
-- Implementa State Container com `@Observable` (Swift 5.9) + ViewModel por ecrã.
 - Exemplo:
 
 ```swift

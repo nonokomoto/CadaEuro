@@ -3,50 +3,58 @@ import SwiftUI
 /// Tokens de bordas e cantos da aplicação CadaEuro
 public struct BorderTokens {
     // MARK: - Corner Radius
-    /// Raio de canto para cards (16px)
-    public let cardRadius: CGFloat
+    /// Raio pequeno para botões e elementos menores (8px)
+    public let radiusSmall: CGFloat
     
-    /// Raio de canto para botões pequenos (12px)
-    public let smallButtonRadius: CGFloat
+    /// Raio médio para cards e componentes (12px)
+    public let radiusMedium: CGFloat
     
-    /// Raio de canto para botões circulares (metade da largura/altura)
-    public let circularButtonRadius: CGFloat
+    /// Raio grande para containers principais (16px)
+    public let radiusLarge: CGFloat
+    
+    /// Raio extra grande para elementos destacados (20px)
+    public let radiusXLarge: CGFloat
     
     // MARK: - Border Width
-    /// Largura de borda padrão (1px)
-    public let standardBorderWidth: CGFloat
+    /// Largura fina para bordas sutis (1px)
+    public let widthThin: CGFloat
     
-    /// Largura de borda para elementos destacados (2px)
-    public let emphasizedBorderWidth: CGFloat
+    /// Largura média para bordas visíveis (2px)
+    public let widthMedium: CGFloat
     
-    // MARK: - Shadow
-    /// Raio de sombra para nível 1 (8px)
-    public let shadowRadius1: CGFloat
+    /// Largura grossa para bordas de destaque (3px)
+    public let widthThick: CGFloat
     
-    /// Offset Y de sombra para nível 1 (4px)
-    public let shadowYOffset1: CGFloat
+    // MARK: - Aliases para componentes específicos
+    /// Raio para botões padrão (12px)
+    public var buttonRadius: CGFloat { radiusMedium }
     
-    /// Raio de sombra para nível 2 (16px)
-    public let shadowRadius2: CGFloat
+    /// Raio para cards (16px)
+    public var cardRadius: CGFloat { radiusLarge }
     
-    /// Offset Y de sombra para nível 2 (8px)
-    public let shadowYOffset2: CGFloat
+    /// Raio para inputs de formulário (8px)
+    public var inputRadius: CGFloat { radiusSmall }
     
-    /// Raio de sombra para efeito glow (12px)
-    public let glowRadius: CGFloat
+    /// Raio para menus e modais (20px)
+    public var menuRadius: CGFloat { radiusXLarge }
+    
+    /// Largura para bordas de foco (2px)
+    public var focusBorderWidth: CGFloat { widthMedium }
+    
+    /// Largura para separadores (1px)
+    public var separatorWidth: CGFloat { widthThin }
     
     // MARK: - Initializer
     /// Inicializa os tokens de bordas com os valores padrão
     public init() {
-        self.cardRadius = 16
-        self.smallButtonRadius = 12
-        self.circularButtonRadius = .infinity // Para criar círculos perfeitos
-        self.standardBorderWidth = 1
-        self.emphasizedBorderWidth = 2
-        self.shadowRadius1 = 8
-        self.shadowYOffset1 = 4
-        self.shadowRadius2 = 16
-        self.shadowYOffset2 = 8
-        self.glowRadius = 12
+        // Utilizamos múltiplos de 4px para manter consistência
+        self.radiusSmall = 8
+        self.radiusMedium = 12
+        self.radiusLarge = 16
+        self.radiusXLarge = 20
+        
+        self.widthThin = 1
+        self.widthMedium = 2
+        self.widthThick = 3
     }
 }
