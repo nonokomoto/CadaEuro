@@ -389,11 +389,11 @@ public struct ScannerOverlay: View {
         // ✅ OPCIONAL: Mais analytics tracking
         print("📊 Analytics: \(CaptureMethod.scanner.analyticsName) - processing_started")
         
-        DispatchQueue.main.asyncAfter(deadline: .now() + 3.0) {
+        DispatchQueue.main.asyncAfter(deadline: .now() + PerformanceConstants.imageProcessingTimeoutSeconds) {  // ✅ USAR PerformanceConstants
             scannerState = .processing
             isScanning = false
             
-            DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) {
+            DispatchQueue.main.asyncAfter(deadline: .now() + PerformanceConstants.llmTimeoutSeconds) {  // ✅ USAR PerformanceConstants
                 // Simula diferentes tipos de erro baseado em probabilidade
                 let errorProbability = Double.random(in: 0...1)
                 

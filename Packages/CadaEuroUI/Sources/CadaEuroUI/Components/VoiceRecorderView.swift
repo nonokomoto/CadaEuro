@@ -1,6 +1,6 @@
 import SwiftUI
 import Speech
-import CadaEuroKit  // ✅ ADICIONADO: Import para usar CaptureMethod.voice
+import CadaEuroKit  
 
 /// Estados do gravador de voz estilo WhatsApp
 public enum VoiceRecorderState: Sendable, Equatable {
@@ -361,20 +361,11 @@ public struct VoiceRecorderView: View {
         #endif
     }
     
-    private func startTimer() {
-        timer = Timer.scheduledTimer(withTimeInterval: 0.1, repeats: true) { _ in
-            Task { @MainActor in
-                recordingDuration += 0.1
-                audioLevel = Float.random(in: 0.1...0.9)
-            }
-        }
-    }
-    
     private func finishRecording() {
         timer?.invalidate()
         timer = nil
         
-        guard recordingDuration >= 0.5 else {
+        guard recordingDuration >= PerformanceConstants.minimumRecordingDuration else {  // ✅ USAR PerformanceConstants
             handleError(.recordingTooShort)
             return
         }
@@ -513,6 +504,20 @@ public struct VoiceRecorderView: View {
                     break
                 @unknown default:
                     handleError(.recognitionNotAvailable)
+                }
+            }
+        }
+    }
+    
+    private func startTimer() {
+        timer = Timer.scheduledTimer(withTimeInterval: 0.1, repeats: true) { _ in
+            Task { @MainActor in
+                recordingDuration += 0.1
+                audioLevel = Float.random(in: 0.1...0.9)
+                
+                // ✅ USAR PerformanceConstants: Timeout máximo de gravação
+                if recordingDuration >= PerformanceConstants.maximumRecordingDuration {
+                    finishRecording()
                 }
             }
         }

@@ -24,9 +24,9 @@ public enum ValidationError: LocalizedError, Sendable, Equatable {
     public var errorDescription: String? {
         switch self {
         case .emptyName: return "Nome do produto é obrigatório"
-        case .nameTooLong: return "Nome muito longo (máx. 100 caracteres)"
+        case .nameTooLong: return "Nome muito longo (máx. \(BusinessRules.maxProductNameLength) caracteres)"  // ✅ USAR BusinessRules
         case .invalidPrice: return "Preço inválido"
-        case .priceOutOfRange: return "Preço deve estar entre €0.01 e €9999.99"
+        case .priceOutOfRange: return "Preço deve estar entre \(BusinessRules.currencySymbol)\(String(format: "%.2f", BusinessRules.minPrice)) e \(BusinessRules.currencySymbol)\(String(format: "%.2f", BusinessRules.maxPrice))"  // ✅ USAR BusinessRules
         }
     }
 }
@@ -233,7 +233,7 @@ public struct ManualInputForm: View {
         
         if trimmedName.isEmpty {
             nameError = .emptyName
-        } else if trimmedName.count > 100 {
+        } else if trimmedName.count > BusinessRules.maxProductNameLength {  // ✅ USAR BusinessRules
             nameError = .nameTooLong
         } else {
             nameError = nil
@@ -258,12 +258,12 @@ public struct ManualInputForm: View {
             priceText = formatted
         }
         
-        // Validação
+        // Validação usando BusinessRules
         let price = parsePrice(from: formatted)
         
         if formatted.isEmpty {
             priceError = .invalidPrice
-        } else if price <= 0 || price > 9999.99 {
+        } else if price < BusinessRules.minPrice || price > BusinessRules.maxPrice {  // ✅ USAR BusinessRules
             priceError = .priceOutOfRange
         } else {
             priceError = nil
