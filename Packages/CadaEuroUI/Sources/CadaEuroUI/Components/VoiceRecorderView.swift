@@ -31,12 +31,14 @@ public enum VoiceRecorderState: Sendable, Equatable {
     }
 }
 
-/// Erros do gravador de voz
+/// Erros do gravador de voz (wrapper do CaptureError)
 public enum VoiceRecorderError: LocalizedError, Sendable, Equatable {
     case permissionDenied
     case recognitionNotAvailable
     case recordingTooShort
     case transcriptionFailed
+    case microphoneUnavailable
+    case networkUnavailable
     
     public var errorDescription: String? {
         switch self {
@@ -44,6 +46,20 @@ public enum VoiceRecorderError: LocalizedError, Sendable, Equatable {
         case .recognitionNotAvailable: return "Reconhecimento de fala indisponível"
         case .recordingTooShort: return "Gravação muito curta"
         case .transcriptionFailed: return "Não consegui perceber o que disse"
+        case .microphoneUnavailable: return "Microfone não disponível"
+        case .networkUnavailable: return "Sem ligação a rede"
+        }
+    }
+    
+    /// Converte VoiceRecorderError para CaptureError centralizado
+    public var asCaptureError: CaptureError {
+        switch self {
+        case .permissionDenied: return .microphonePermissionDenied
+        case .recognitionNotAvailable: return .speechRecognitionFailed
+        case .recordingTooShort: return .speechRecognitionFailed
+        case .transcriptionFailed: return .speechRecognitionFailed
+        case .microphoneUnavailable: return .microphoneUnavailable
+        case .networkUnavailable: return .networkUnavailable
         }
     }
 }
@@ -54,6 +70,7 @@ public struct VoiceRecorderView: View {
     
     private let onTranscriptionComplete: (String) -> Void
     private let onError: (VoiceRecorderError) -> Void
+    private let onFallbackToManual: (() -> Void)?
     
     @State private var recorderState: VoiceRecorderState = .idle
     @State private var isLongPressing = false
@@ -61,15 +78,18 @@ public struct VoiceRecorderView: View {
     @State private var audioLevel: Float = 0.0
     @State private var transcribedText: String = ""
     @State private var timer: Timer?
+    @State private var currentError: VoiceRecorderError?
     
     // MARK: - Initializer
     
     public init(
         onTranscriptionComplete: @escaping (String) -> Void,
-        onError: @escaping (VoiceRecorderError) -> Void
+        onError: @escaping (VoiceRecorderError) -> Void,
+        onFallbackToManual: (() -> Void)? = nil
     ) {
         self.onTranscriptionComplete = onTranscriptionComplete
         self.onError = onError
+        self.onFallbackToManual = onFallbackToManual
     }
     
     public var body: some View {
@@ -88,6 +108,18 @@ public struct VoiceRecorderView: View {
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .animation(themeProvider.theme.animation.spring, value: recorderState)
+        .captureErrorHandler(
+            error: currentError?.asCaptureError,
+            onRetry: {
+                clearErrorAndRetry()
+            },
+            onCancel: {
+                clearErrorAndCancel()
+            },
+            onFallback: onFallbackToManual != nil ? {
+                clearErrorAndFallback()
+            } : nil
+        )
         .onAppear {
             if ProcessInfo.processInfo.environment["XCODE_RUNNING_FOR_PREVIEWS"] == nil {
                 requestPermissions()
@@ -295,18 +327,46 @@ public struct VoiceRecorderView: View {
     }
     
     private func startRecording() {
+        // Verifica permissões antes de iniciar
+        guard ProcessInfo.processInfo.environment["XCODE_RUNNING_FOR_PREVIEWS"] == nil else {
+            // Preview mode - simula início de gravação
+            recorderState = .recording
+            recordingDuration = 0.0
+            startTimer()
+            return
+        }
+        
+        // ✅ Condicional de compilação para multiplataforma
+        #if os(iOS) || os(watchOS)
+        // Verifica disponibilidade do microfone
+        AVAudioSession.sharedInstance().requestRecordPermission { granted in
+            Task { @MainActor in
+                if granted {
+                    recorderState = .recording
+                    recordingDuration = 0.0
+                    currentError = nil
+                    startTimer()
+                } else {
+                    handleError(.permissionDenied)
+                }
+            }
+        }
+        #else
+        // macOS/outras plataformas - simula permissão concedida
         recorderState = .recording
         recordingDuration = 0.0
-        
+        currentError = nil
+        startTimer()
+        #endif
+    }
+    
+    private func startTimer() {
         timer = Timer.scheduledTimer(withTimeInterval: 0.1, repeats: true) { _ in
             Task { @MainActor in
                 recordingDuration += 0.1
                 audioLevel = Float.random(in: 0.1...0.9)
             }
         }
-        
-        // ✅ SwiftUI-Only: Sem UIImpactFeedbackGenerator
-        // Feedback háptico será adicionado via SensoryFeedback quando disponível
     }
     
     private func finishRecording() {
@@ -314,7 +374,7 @@ public struct VoiceRecorderView: View {
         timer = nil
         
         guard recordingDuration >= 0.5 else {
-            recorderState = .error(.recordingTooShort)
+            handleError(.recordingTooShort)
             return
         }
         
@@ -334,21 +394,65 @@ public struct VoiceRecorderView: View {
         Task { @MainActor in
             try? await Task.sleep(for: .seconds(2.0))
             
-            // Mock transcription
-            let mockTranscriptions = [
-                "Leite Mimosa 1,29 euros",
-                "Pão de forma 85 cêntimos",
-                "Queijo 3,50 euros",
-                "Iogurte natural 2,20 euros"
-            ]
+            // Simula diferentes tipos de erro baseado em probabilidade
+            let errorProbability = Double.random(in: 0...1)
             
-            if Bool.random() && Double.random(in: 0...1) > 0.2 {
+            if errorProbability > 0.7 { // 30% chance de erro
+                let errors: [VoiceRecorderError] = [
+                    .transcriptionFailed,
+                    .recognitionNotAvailable,
+                    .networkUnavailable
+                ]
+                let randomError = errors.randomElement()!
+                handleError(randomError)
+            } else {
+                // Mock transcription success
+                let mockTranscriptions = [
+                    "Leite Mimosa 1,29 euros",
+                    "Pão de forma 85 cêntimos",
+                    "Queijo 3,50 euros",
+                    "Iogurte natural 2,20 euros"
+                ]
+                
                 transcribedText = mockTranscriptions.randomElement() ?? "Texto não reconhecido"
                 recorderState = .transcribed
-            } else {
-                recorderState = .error(.transcriptionFailed)
             }
         }
+    }
+    
+    private func handleError(_ error: VoiceRecorderError) {
+        recorderState = .error(error)
+        currentError = error
+        onError(error)
+    }
+    
+    // MARK: - Error Recovery Actions
+    
+    private func clearErrorAndRetry() {
+        currentError = nil
+        timer?.invalidate()
+        timer = nil
+        
+        withAnimation(themeProvider.theme.animation.spring) {
+            recorderState = .idle
+            isLongPressing = false
+        }
+        
+        // Tenta novamente após um breve delay
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+            requestPermissions()
+        }
+    }
+    
+    private func clearErrorAndCancel() {
+        currentError = nil
+        cancelRecording()
+    }
+    
+    private func clearErrorAndFallback() {
+        currentError = nil
+        cancelRecording()
+        onFallbackToManual?()
     }
     
     private func cancelRecording() {
@@ -393,8 +497,16 @@ public struct VoiceRecorderView: View {
         
         SFSpeechRecognizer.requestAuthorization { status in
             Task { @MainActor in
-                if status != .authorized {
-                    recorderState = .error(.permissionDenied)
+                switch status {
+                case .authorized:
+                    currentError = nil
+                case .denied, .restricted:
+                    handleError(.permissionDenied)
+                case .notDetermined:
+                    // Aguarda decisão do utilizador
+                    break
+                @unknown default:
+                    handleError(.recognitionNotAvailable)
                 }
             }
         }
@@ -413,7 +525,30 @@ public struct VoiceRecorderView: View {
     }
 }
 
+// MARK: - Import necessário para AVAudioSession (apenas iOS/watchOS)
+#if os(iOS) || os(watchOS)
+import AVFoundation
+#endif
+
 // MARK: - Previews
+
+#Preview("Voice Recorder with Error Recovery") {
+    VStack(spacing: 32) {
+        Text("Voice Recorder com Error Handling")
+            .font(.headline)
+        
+        VoiceRecorderView { transcription in
+            print("Transcription: \(transcription)")
+        } onError: { error in
+            print("Voice error: \(error)")
+        } onFallbackToManual: {
+            print("Fallback to manual input")
+        }
+    }
+    .padding()
+    .background(ThemeProvider.preview.theme.colors.cadaEuroBackground)
+    .themeProvider(.preview)
+}
 
 #Preview("Voice Recorder - Idle") {
     VStack(spacing: 32) {
