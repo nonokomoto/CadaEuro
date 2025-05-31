@@ -1,5 +1,6 @@
 import SwiftUI
 import Speech
+import CadaEuroKit  // ✅ ADICIONADO: Import para usar CaptureMethod.voice
 
 /// Estados do gravador de voz estilo WhatsApp
 public enum VoiceRecorderState: Sendable, Equatable {
@@ -388,6 +389,9 @@ public struct VoiceRecorderView: View {
     }
     
     private func processRecording() {
+        // ✅ ADICIONADO: Analytics tracking
+        print("📊 Analytics: \(CaptureMethod.voice.analyticsName) - processing_started")
+        
         recorderState = .processing
         
         // ✅ MainActor isolation para updates de UI
@@ -477,6 +481,8 @@ public struct VoiceRecorderView: View {
     
     private func sendRecording() {
         if case .transcribed = recorderState {
+            // ✅ ADICIONADO: Analytics tracking
+            print("📊 Analytics: \(CaptureMethod.voice.analyticsName) - transcription_success")
             onTranscriptionComplete(transcribedText)
         }
         

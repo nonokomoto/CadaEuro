@@ -1,4 +1,5 @@
 import SwiftUI
+import CadaEuroKit
 
 /// Selector de métodos de captura com carrossel horizontal
 public struct CaptureMethodSelector: View {

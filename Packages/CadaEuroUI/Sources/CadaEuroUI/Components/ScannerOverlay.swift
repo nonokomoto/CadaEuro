@@ -1,4 +1,5 @@
 import SwiftUI
+import CadaEuroKit  
 
 /// Estados do scanner durante o processo de captura
 public enum ScannerState: Sendable, Equatable {
@@ -346,6 +347,9 @@ public struct ScannerOverlay: View {
     // MARK: - Methods
     
     private func startScanning() {
+        // ✅ NOVO: Analytics tracking usando CaptureMethod centralizado
+        print("📊 Analytics: \(CaptureMethod.scanner.analyticsName) - scan_attempt")
+        
         scannerState = .scanning
         isScanning = true
         cornerScale = 1.02
@@ -382,6 +386,9 @@ public struct ScannerOverlay: View {
     // MARK: - Simulation (substituir por VisionKit real)
     
     private func simulateScanning() {
+        // ✅ OPCIONAL: Mais analytics tracking
+        print("📊 Analytics: \(CaptureMethod.scanner.analyticsName) - processing_started")
+        
         DispatchQueue.main.asyncAfter(deadline: .now() + 3.0) {
             scannerState = .processing
             isScanning = false
@@ -398,6 +405,7 @@ public struct ScannerOverlay: View {
                         .networkUnavailable
                     ]
                     let randomError = errors.randomElement()!
+                    print("📊 Analytics: \(CaptureMethod.scanner.analyticsName) - scan_failed - \(randomError)")
                     handleError(randomError)
                 } else {
                     // Simula sucesso
@@ -409,6 +417,7 @@ public struct ScannerOverlay: View {
                         ("Azeite Virgem", 4.29)
                     ]
                     let product = mockProducts.randomElement()!
+                    print("📊 Analytics: \(CaptureMethod.scanner.analyticsName) - scan_success - \(product.0)")
                     scannerState = .success(product.0, product.1)
                     
                     DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) {

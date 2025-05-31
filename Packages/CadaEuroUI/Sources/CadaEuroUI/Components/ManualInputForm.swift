@@ -1,13 +1,16 @@
 import SwiftUI
+import CadaEuroKit  
 
 /// Dados do produto para entrada manual
 public struct ProductData: Sendable, Equatable {
     public let name: String
     public let price: Double
+    public let captureMethod: CaptureMethod  
     
-    public init(name: String, price: Double) {
+    public init(name: String, price: Double, captureMethod: CaptureMethod = .manual) {  
         self.name = name
         self.price = price
+        self.captureMethod = captureMethod
     }
 }
 
@@ -275,10 +278,13 @@ public struct ManualInputForm: View {
     private func handleAddProduct() {
         guard isFormValid else { return }
         
+        // ✅ ADICIONADO: Analytics tracking
+        print("📊 Analytics: \(CaptureMethod.manual.analyticsName) - product_added")
+        
         let trimmedName = productName.trimmingCharacters(in: .whitespacesAndNewlines)
         let price = parsePrice(from: priceText)
         
-        let productData = ProductData(name: trimmedName, price: price)
+        let productData = ProductData(name: trimmedName, price: price, captureMethod: .manual)  // ✅ ADICIONADO: captureMethod
         onAdd(productData)
         
         // Reset form

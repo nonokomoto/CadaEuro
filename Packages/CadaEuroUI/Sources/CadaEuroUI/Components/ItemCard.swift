@@ -1,4 +1,5 @@
 import SwiftUI
+import CadaEuroKit
 
 /// Dados do produto para o ItemCard
 public struct ShoppingItem: Identifiable, Hashable, Sendable {

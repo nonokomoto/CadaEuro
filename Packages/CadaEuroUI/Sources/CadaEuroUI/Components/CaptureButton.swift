@@ -1,43 +1,5 @@
 import SwiftUI
-
-/// Método de captura disponível na aplicação CadaEuro
-public enum CaptureMethod: String, CaseIterable, Sendable {
-    case scanner = "camera"
-    case voice = "mic"
-    case manual = "keyboard"
-    
-    public var title: String {
-        switch self {
-        case .scanner: return "Capturar com câmara"
-        case .voice: return "Gravar com microfone"
-        case .manual: return "Adicionar manualmente"
-        }
-    }
-    
-    public var systemImage: String {
-        switch self {
-        case .scanner: return "camera.viewfinder"
-        case .voice: return "mic.fill"
-        case .manual: return "keyboard"
-        }
-    }
-    
-    public var accessibilityHint: String {
-        switch self {
-        case .scanner: return "Abre scanner para códigos de barras"
-        case .voice: return "Inicia gravação de voz para adicionar produto"
-        case .manual: return "Abre formulário para entrada manual"
-        }
-    }
-    
-    public var accentColor: Color {
-        switch self {
-        case .scanner: return .blue
-        case .voice: return .green
-        case .manual: return .orange
-        }
-    }
-}
+import CadaEuroKit  
 
 /// Botão de captura minimalista para métodos CadaEuro
 public struct CaptureButton: View {
@@ -47,7 +9,7 @@ public struct CaptureButton: View {
     private let isActive: Bool
     private let action: () -> Void
     
-    private let onLongPress: (() -> Void)?  // ✅ Novo parâmetro
+    private let onLongPress: (() -> Void)?  
     
     @State private var isPressed = false
     
@@ -78,7 +40,7 @@ public struct CaptureButton: View {
                         y: isActive ? 4 : 2
                     )
                 
-                // Ícone
+                // Ícone - ✅ AGORA: Usa properties do CaptureMethod centralizado
                 Image(systemName: method.systemImage)
                     .font(.system(size: 24, weight: .medium))
                     .foregroundColor(iconColor)
@@ -108,6 +70,7 @@ public struct CaptureButton: View {
                 isPressed = pressing
             } perform: {}
         }
+        // ✅ AGORA: Usa accessibility properties do CaptureMethod centralizado
         .accessibilityLabel(method.title)
         .accessibilityHint(method.accessibilityHint)
         .accessibilityAddTraits(isActive ? .isSelected : [])
@@ -116,6 +79,7 @@ public struct CaptureButton: View {
     // MARK: - Computed Properties
     
     private var backgroundGradient: LinearGradient {
+        // ✅ AGORA: Usa accentColor do CaptureMethod centralizado
         let baseColor = isActive ? method.accentColor : themeProvider.theme.colors.cadaEuroAccent
         let opacity = isActive ? 0.2 : 0.1
         
@@ -131,6 +95,7 @@ public struct CaptureButton: View {
     
     private var iconColor: Color {
         if isActive {
+            // ✅ AGORA: Usa accentColor do CaptureMethod centralizado
             return method.accentColor
         }
         return themeProvider.theme.colors.cadaEuroAccent
@@ -138,6 +103,7 @@ public struct CaptureButton: View {
     
     private var shadowColor: Color {
         if isActive {
+            // ✅ AGORA: Usa accentColor do CaptureMethod centralizado
             return method.accentColor.opacity(0.3)
         }
         return themeProvider.theme.colors.cadaEuroTextTertiary.opacity(0.2)
