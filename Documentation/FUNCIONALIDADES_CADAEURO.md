@@ -27,14 +27,27 @@ CadaEuro é uma aplicação premium de lista de compras para iOS 17+ que ajuda c
 - Processamento LLM para normalização de texto (GPT-4.1 mini / Gemini 2 Flash)
 - Recurso para entrada manual em caso de falha
 
-**🎤 Entrada por Voz (SpeechRecognizer)**
-- Botão: "Gravar com microfone"
-- Interface de gravação com animação de pulsação
-- Reconhecimento de fala em português (Locale pt-PT)
-- Transcrição streaming em tempo real
-- Processamento LLM para normalização de texto (GPT-4.1 mini / Gemini 2 Flash)
-- Confirmação visual do item capturado
-- Suporte completo no dispositivo (simulador usa dados mock)
+**🎤 Entrada por Voz (SpeechRecognizer)** ✅ ATUALIZADO
+- **Interface**: VoiceRecorderView inline (sem modal)
+- **Trigger**: Long press no botão microfone
+- **Expansão**: Interface horizontal com visualizer
+- **Estados**: idle → recording → processing → transcribed
+- **Ações**: delete, send com botões compactos (32px)
+- **Integração**: CaptureButton.onLongPress → VoiceRecorderView
+- **Reconhecimento**: Português (Locale pt-PT) 
+- **Processamento**: LLM para normalização (GPT-4.1 mini / Gemini 2 Flash)
+- **Preview**: Proteção TCC para desenvolvimento
+- **SwiftUI-Only**: Zero dependencies UIKit
+
+#### **Integração CaptureButton ↔ VoiceRecorderView**
+```swift
+// Padrão estabelecido
+CaptureButton(method: .voice) {
+    // Tap action
+} onLongPress: {
+    // Conecta com VoiceRecorderView.startRecording()
+}
+```
 
 **⌨️ Entrada Manual**
 - Botão: "Adicionar manualmente"

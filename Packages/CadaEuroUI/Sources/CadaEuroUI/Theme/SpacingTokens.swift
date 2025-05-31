@@ -8,6 +8,9 @@ public struct SpacingTokens {
     
     /// Espaçamento pequeno (16px)
     public let sm: CGFloat
+
+    /// Espaçamento médio (20px) - utilizado como margem lateral global
+    public let md: CGFloat
     
     /// Espaçamento médio (20px) - margins globais
     public let lg: CGFloat
@@ -70,6 +73,7 @@ public struct SpacingTokens {
         // Utilizamos um grid de 8px como base para os espaçamentos
         self.xs = 8
         self.sm = 16
+        self.md = 20 // Espaçamento médio utilizado como margem lateral global
         self.lg = 20
         self.xl = 24
         self.xxl = 40

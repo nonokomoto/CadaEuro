@@ -16,7 +16,8 @@ A aplicação **CadaEuro** (iOS 17+) ajuda consumidores a controlar em tempo rea
 
 | Camada              | Tecnologia                           | Notas                                                     |
 |---------------------|--------------------------------------|-----------------------------------------------------------|
-| UI & Estado         | **SwiftUI + Combine**                | Navegação stack-based, animações Swift Concurrency        |
+| **UI & Estado**     | **SwiftUI EXCLUSIVO**                | **🚫 PROIBIDO UIKit** - Navegação stack-based, animações Swift 6 |
+| Concorrência        | **Swift 6 Strict Concurrency**      | @Observable, @MainActor, Sendable compliance              |
 | OCR                 | **VisionKit TextRecognizer**         | On-device; pré-processamento CIImage (binarização)        |
 | Voz                 | **SpeechRecognizer**                 | Locale pt-PT; transcrição streaming                       |
 | LLM                 | **GPT-4.1 mini / Gemini 2 Flash**    | Normalização de texto; fallback nano                      |
@@ -25,6 +26,36 @@ A aplicação **CadaEuro** (iOS 17+) ajuda consumidores a controlar em tempo rea
 | Analytics & Crashes | **Mixpanel, Firebase Crashlytics**   | Eventos funil e erros                                     |
 | CI/CD               | **GitHub Actions + Fastlane**        | Automatizar build, testes, distribuição TestFlight        |
 | Monitorização       | **Xcode Cloud Metrics**              | Tempo build, regressão performance                        |
+
+---
+
+## 2.1 Política SwiftUI-Only (PRIORIDADE MÁXIMA)
+
+### 🚫 Restrições Absolutas
+- **PROIBIDO uso de UIKit** - Nenhuma importação `import UIKit`
+- **PROIBIDO UIViewController** - Apenas Views SwiftUI nativas
+- **PROIBIDO UIView wrapping** - Sem `UIViewRepresentable`
+- **PROIBIDO UIColor** - Apenas `SwiftUI.Color`
+- **PROIBIDO Auto Layout** - Apenas layout SwiftUI nativo
+
+### ✅ Alternativas SwiftUI Obrigatórias
+
+| UIKit (PROIBIDO) | SwiftUI (OBRIGATÓRIO) | Uso |
+|------------------|----------------------|-----|
+| `UIColor.systemBackground` | `Color(.systemBackground)` | Cores do sistema |
+| `UIViewController` | `@StateObject ViewModel` | Gestão de estado |
+| `UITableView` | `List` ou `LazyVStack` | Listas de dados |
+| `UINavigationController` | `NavigationStack` | Navegação |
+| `UIAlertController` | `.alert()` modifier | Alertas |
+| `UIActivityViewController` | `ShareLink` | Partilha |
+| `UIImagePickerController` | `PhotosPicker` | Seleção de fotos |
+
+### 🎯 Justificação Técnica
+1. **Consistência de Design**: SwiftUI garante HIG compliance automática
+2. **Performance**: Eliminação de overhead UIKit ↔ SwiftUI
+3. **Manutenibilidade**: Código unificado sem bridging
+4. **Futuro-prova**: Preparação para visionOS e multiplataforma
+5. **Acessibilidade**: Suporte nativo superior no SwiftUI
 
 ---
 
@@ -50,25 +81,134 @@ A aplicação **CadaEuro** (iOS 17+) ajuda consumidores a controlar em tempo rea
 6. **CadaEuroLLM** – Abstração OpenAI/Gemini com retry, caching  
 7. **CadaEuroKit** – Utilitários, telemetry, extensões
 
----
+### 3.2 Swift 6 Concurrency & Safety
 
-## 4. Fluxos de Dados
+#### Estratégia de Isolamento
+```swift
+// ThemeProvider - MainActor isolado para UI
+@Observable
+@MainActor
+public final class ThemeProvider: Sendable {
+    public private(set) var theme: AppTheme
+}
 
-### 4.1 OCR
+// ✅ SwiftUI-Only - Sem UIKit
+// ❌ PROIBIDO: import UIKit
+// ❌ PROIBIDO: UIColor.systemBackground
+// ✅ CORRETO: Color(.systemBackground)
 
-```mermaid
-sequenceDiagram
-User → UI: Captura imagem
-UI → OCRService: detectText()
-OCRService → LLMService: normalize(rawText)
-LLMService → Domain: send(Item(price))
-Domain → DataStore: save(Item)
-UI ← Domain: update total
+// Modelos de dados - Sendable para thread safety
+public struct ShoppingItem: Identifiable, Hashable, Sendable {
+    public let id: UUID
+    public let name: String
+    public let price: Double
+    // ... campos imutáveis
+}
+
+// Enums - Sendable para uso em contextos concorrentes
+public enum CaptureMethod: String, CaseIterable, Sendable {
+    case scanner, voice, manual
+}
 ```
 
-### 4.2 Voz
+#### Padrões de Concorrência
+- **@MainActor**: UI components, ThemeProvider, ViewModels
+- **Sendable**: Modelos de dados, enums, structs imutáveis
+- **Environment**: Injeção única com propagação automática
+- **Computed Properties**: Métodos @MainActor para evitar isolation errors
 
-Idêntico, substituindo VisionKit por SpeechRecognizer.
+#### Resolução de Erros Comuns
+```swift
+// ❌ Erro: Main actor-isolated property em contexto nonisolated
+var textColor: (ThemeProvider) -> Color { ... }
+
+// ✅ Solução: Método com MainActor isolation
+@MainActor
+func textColor(for themeProvider: ThemeProvider) -> Color { ... }
+```
+
+---
+
+## 4. Design System & Theme Management
+
+### 4.1 ThemeProvider Architecture (SwiftUI-Only)
+
+#### Injeção Única, Consumo Global
+```swift
+// App.swift - Injeção no ponto de entrada
+ContentView()
+    .cadaEuroTheme() // ✅ Uma vez no topo
+
+// Qualquer View - Consumo automático
+@Environment(\.themeProvider) private var themeProvider
+```
+
+#### Tokens Centralizados
+- **ColorTokens**: Cores adaptativas light/dark
+- **TypographyTokens**: Fontes escaláveis com Dynamic Type
+- **SpacingTokens**: Grid 8px com aliases semânticos
+- **BorderTokens**: Raios e larguras consistentes
+- **AnimationTokens**: Durações e curvas padronizadas
+
+#### Environment Safety
+```swift
+// Resolução de defaultValue sem MainActor conflicts
+private struct ThemeProviderKey: EnvironmentKey {
+    static let defaultValue: ThemeProvider? = nil
+}
+
+public extension EnvironmentValues {
+    var themeProvider: ThemeProvider {
+        @MainActor
+        get { 
+            self[ThemeProviderKey.self] ?? ThemeProvider()
+        }
+        set { self[ThemeProviderKey.self] = newValue }
+    }
+}
+```
+
+### 4.2 Componentes Reutilizáveis
+
+#### Hierarquia de Componentes
+```
+Components/
+├── ActionButton       # Botões primários/secundários/destrutivos
+├── CaptureButton      # Botões específicos de captura (Scanner/Voz/Manual)
+│   └── onLongPress    # ✅ NOVO: Callback para VoiceRecorderView
+├── VoiceRecorderView  # ✅ COMPLETO: Interface inline de gravação
+│   ├── Inline expansion (sem modal)
+│   ├── Long press integration
+│   ├── Audio visualizer
+│   ├── State management (idle→recording→transcribed)
+│   └── SwiftUI-Only compliance
+├── ItemCard           # Cards de produtos com swipe-to-delete
+├── EmptyStateView     # Estados vazios com CTAs contextuais
+├── TotalDisplayView   # Display premium do total
+└── ManualInputForm    # Formulário de entrada manual
+```
+
+#### ✅ Integração VoiceRecorderView (NOVO)
+```swift
+// ShoppingListView integration pattern
+VStack {
+    // Total display
+    TotalDisplay(amount: viewModel.total)
+    
+    // Voice recording interface
+    VoiceRecorderView { transcription in
+        viewModel.addItem(from: transcription)
+    } onError: { error in
+        viewModel.showError(error)
+    }
+    
+    // Other capture methods
+    HStack {
+        CaptureButton(method: .scanner) { /* scanner */ }
+        CaptureButton(method: .manual) { /* manual */ }
+    }
+}
+```
 
 ---
 
@@ -137,6 +277,22 @@ Idêntico, substituindo VisionKit por SpeechRecognizer.
 - Dynamic Type escalonável até XXL
 - Contraste mínimo 4.5:1
 
+### Conformidade Sendable para Previews
+```swift
+// Dados de preview thread-safe
+extension ShoppingItem {
+    static let sampleItems: [ShoppingItem] = [
+        ShoppingItem(name: "Leite", price: 1.29, captureMethod: .scanner),
+        // ... outros itens
+    ]
+}
+
+// Enums de estado Sendable
+public enum ItemCardState: Sendable {
+    case normal, editing, deleting, selected
+}
+```
+
 ---
 
 ## 13. Performance & Otimização
@@ -144,23 +300,10 @@ Idêntico, substituindo VisionKit por SpeechRecognizer.
 - Evitar @State excessivo; usar @StateObject
 - Reutilizar instâncias VisionKit
 - Cache de respostas LLM (NSCache 5 min.)
-
----
-
-## 14. Estrutura de Diretórios (resumo)
-
-```plaintext
-CadaEuro/
- ├─ App/
- ├─ Features/
- │   ├─ OCR/
- │   ├─ Voice/
- │   └─ ManualInput/
- ├─ Core/
- ├─ Resources/
- ├─ Tests/
- └─ Scripts/
-```
+- **MainActor Isolation**: UI updates garantidamente na main thread
+- **Sendable Compliance**: Thread safety sem overhead de locks
+- **Environment Propagation**: Evita prop drilling manual
+- **Computed Properties**: Lazy evaluation com caching automático
 
 ---
 
@@ -170,15 +313,79 @@ CadaEuro/
 - Sufixos ViewModel, Repository, Service
 - Comentários Markdown quando necessário contexto (não obviedade)
 
+### Swift 6 + SwiftUI-Only Guidelines
+
+#### Imports Permitidos
+```swift
+// ✅ PERMITIDOS
+import SwiftUI
+import SwiftData
+import VisionKit
+import Speech
+import CloudKit
+import Combine
+
+// 🚫 ABSOLUTAMENTE PROIBIDOS
+// import UIKit          ❌
+// import Foundation     ⚠️ (apenas se necessário para tipos específicos)
+```
+
+#### Padrões de Código SwiftUI
+```swift
+// ✅ CORRETO - ViewModifier SwiftUI
+struct CadaEuroButtonStyle: ButtonStyle {
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .scaleEffect(configuration.isPressed ? 0.95 : 1.0)
+            .animation(.easeInOut(duration: 0.1), value: configuration.isPressed)
+    }
+}
+
+// ❌ PROIBIDO - Qualquer UIKit
+// class CustomViewController: UIViewController { }
+```
+
+#### Navegação SwiftUI Nativa
+```swift
+// ✅ CORRETO - NavigationStack
+NavigationStack {
+    ShoppingListView()
+        .navigationDestination(for: ShoppingItem.self) { item in
+            ItemDetailView(item: item)
+        }
+}
+
+// ❌ PROIBIDO - UINavigationController
+// let navController = UINavigationController()
+```
+
+#### Gestão de Estado SwiftUI
+```swift
+// ✅ CORRETO - @Observable + @StateObject
+@Observable
+class ShoppingListViewModel {
+    var items: [ShoppingItem] = []
+    var total: Double = 0.0
+}
+
+// ❌ PROIBIDO - UIViewController patterns
+// class ShoppingListViewController: UIViewController { }
+```
+
 ---
 
 ## 16. Riscos Técnicos & Mitigações
 
 | Risco                                   | Impacto | Plano                                                         |
 |-----------------------------------------|---------|---------------------------------------------------------------|
+| **Tentação de usar UIKit**              | **CRÍTICO** | **Code reviews obrigatórios, linting rules, formação equipa** |
+| Limitações SwiftUI específicas         | Médio   | Workarounds nativos, aguardar updates iOS                    |
+| Performance em listas grandes           | Médio   | LazyVStack, paginação, otimização de rendering               |
 | Aumento custos LLM                      | Alto    | Cache, batch requests, renegociação anual                     |
 | Limites VisionKit em recibos mal impressos | Médio  | Pré-processamento imagem, confidence score fallback manual    |
 | Conflitos CloudKit                      | Médio   | Estratégia last-writer-wins, diff visual                      |
+| MainActor isolation conflicts          | Alto    | Padrões estabelecidos, métodos com @MainActor explicit       |
+| Sendable compliance breaking changes   | Médio   | Progressive adoption, wrapper types para legacy code         |
 
 ---
 
@@ -197,20 +404,58 @@ CadaEuro/
 
 ## 18. Definição de Done
 
-- Build compila sem erros/warnings nível crítico
-- Testes automatizados passam (coverage ≥ 80 %)
-- Novo código revisto (1 revisor), lint ok
-- QA confirma requisitos HIG & A11y
+- ✅ **Build compila sem erros/warnings nível crítico**
+- ✅ **ZERO imports UIKit** - Verificação automática via linting
+- ✅ **SwiftUI-Only compliance** - Review obrigatório
+- ✅ **Testes automatizados passam (coverage ≥ 80 %)**
+- ✅ **Novo código revisto (1 revisor), lint ok**
+- ✅ **QA confirma requisitos HIG & A11y**
+
+### Checklist SwiftUI-Only
+- [ ] Nenhum `import UIKit` no código
+- [ ] Nenhuma classe `UIViewController`
+- [ ] Nenhum `UIViewRepresentable`
+- [ ] Apenas `SwiftUI.Color` (não `UIColor`)
+- [ ] Layout exclusivamente SwiftUI
+- [ ] Navegação via `NavigationStack`
+- [ ] Modais via `.sheet()` e `.alert()`
 
 ---
 
-## 19. Referências
+## 19. Ferramentas de Enforcement
 
-- Apple Documentation: VisionKit, SpeechRecognizer, SwiftData
-- Human Interface Guidelines (2025)
-- Google Generative AI Swift SDK
-- OpenAI swift SDK
+### SwiftLint Rules Customizadas
+```yaml
+# .swiftlint.yml
+disabled_rules: []
+
+custom_rules:
+  no_uikit_import:
+    name: "No UIKit Import"
+    regex: "import UIKit"
+    message: "🚫 PROIBIDO: Uso de UIKit não permitido"
+    severity: error
+    
+  no_uiviewcontroller:
+    name: "No UIViewController"
+    regex: "UIViewController"
+    message: "🚫 PROIBIDO: Use @StateObject ViewModel"
+    severity: error
+```
+
+### GitHub Actions CI Check
+```yaml
+- name: Check SwiftUI-Only Compliance
+  run: |
+    if grep -r "import UIKit" . --exclude-dir=.git; then
+      echo "🚫 ERROR: UIKit import found"
+      exit 1
+    fi
+```
 
 ---
 
-**Última actualização:** 22 Maio 2025
+**Última actualização:** 30 Maio 2025
+**Swift Version:** 6.0
+**iOS Target:** 17.0+
+**UI Framework:** SwiftUI EXCLUSIVO 🎯
