@@ -29,14 +29,14 @@ public struct ShoppingItem: Identifiable, Hashable, Sendable {
         price * Double(quantity)
     }
     
-    /// Formatação do preço em euros
+    /// Formatação do preço unitário usando DoubleExtensions
     public var formattedPrice: String {
-        String(format: "€%.2f", price)
+        price.asItemCardPrice  // ✅ USAR DoubleExtensions
     }
     
-    /// Formatação do preço total em euros
+    /// Formatação do preço total usando DoubleExtensions
     public var formattedTotalPrice: String {
-        String(format: "€%.2f", totalPrice)
+        totalPrice.asItemCardPrice  // ✅ USAR DoubleExtensions
     }
 }
 
@@ -98,8 +98,8 @@ public struct ItemCard: View {
             
             // Controlos de quantidade e valor
             VStack(alignment: .trailing, spacing: themeProvider.theme.spacing.xs) {
-                // Valor total
-                Text(item.formattedTotalPrice)
+                // Valor total - ✅ USAR DoubleExtensions
+                Text(item.totalPrice.asItemCardPrice)
                     .font(themeProvider.theme.typography.bodyLarge)
                     .fontWeight(.semibold)
                     .foregroundColor(priceColor)
@@ -342,7 +342,8 @@ public struct ItemCard: View {
     // MARK: - Accessibility
     
     private var accessibilityLabel: String {
-        var label = "\(item.name), \(item.formattedTotalPrice)"
+        // ✅ USAR DoubleExtensions para acessibilidade
+        var label = "\(item.name), \(item.totalPrice.asCurrencyAccessible)"
         
         if item.quantity > 1 {
             label += ", \(item.quantity) unidades"

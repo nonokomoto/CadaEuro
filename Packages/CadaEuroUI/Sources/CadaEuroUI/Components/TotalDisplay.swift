@@ -145,11 +145,8 @@ public struct TotalDisplay: View {
     }
     
     private var formattedTotal: String {
-        let formatter = NumberFormatter()
-        formatter.numberStyle = .currency
-        formatter.currencyCode = "EUR"
-        formatter.locale = Locale(identifier: "pt_PT")
-        return formatter.string(from: NSNumber(value: total)) ?? "€0,00"
+        // ✅ USAR DoubleExtensions: Formatação premium para display principal
+        return total.asTotalDisplayPrice
     }
     
     private var totalColor: Color {
@@ -161,7 +158,8 @@ public struct TotalDisplay: View {
         if isLoading {
             return "Total da lista: A calcular"
         }
-        return "Total da lista: \(formattedTotal)"
+        // ✅ USAR DoubleExtensions: Acessibilidade natural
+        return "Total da lista: \(total.asCurrencyAccessible)"
     }
     
     private var accessibilityHint: String {

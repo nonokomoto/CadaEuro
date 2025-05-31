@@ -24,9 +24,9 @@ public enum ValidationError: LocalizedError, Sendable, Equatable {
     public var errorDescription: String? {
         switch self {
         case .emptyName: return "Nome do produto é obrigatório"
-        case .nameTooLong: return "Nome muito longo (máx. \(BusinessRules.maxProductNameLength) caracteres)"  // ✅ USAR BusinessRules
+        case .nameTooLong: return "Nome muito longo (máx. \(BusinessRules.maxProductNameLength) caracteres)"
         case .invalidPrice: return "Preço inválido"
-        case .priceOutOfRange: return "Preço deve estar entre \(BusinessRules.currencySymbol)\(String(format: "%.2f", BusinessRules.minPrice)) e \(BusinessRules.currencySymbol)\(String(format: "%.2f", BusinessRules.maxPrice))"  // ✅ USAR BusinessRules
+        case .priceOutOfRange: return "Preço deve estar entre \(BusinessRules.minPrice.asCurrency) e \(BusinessRules.maxPrice.asCurrency)" 
         }
     }
 }
@@ -258,12 +258,12 @@ public struct ManualInputForm: View {
             priceText = formatted
         }
         
-        // Validação usando BusinessRules
+        // ✅ USAR DoubleExtensions: Validação com BusinessRules integradas
         let price = parsePrice(from: formatted)
         
         if formatted.isEmpty {
             priceError = .invalidPrice
-        } else if price < BusinessRules.minPrice || price > BusinessRules.maxPrice {  // ✅ USAR BusinessRules
+        } else if !price.isValidPrice {  // ✅ USAR DoubleExtensions.isValidPrice
             priceError = .priceOutOfRange
         } else {
             priceError = nil
@@ -271,8 +271,8 @@ public struct ManualInputForm: View {
     }
     
     private func parsePrice(from text: String) -> Double {
-        let normalizedText = text.replacingOccurrences(of: ",", with: ".")
-        return Double(normalizedText) ?? 0.0
+        // ✅ USAR DoubleExtensions: Método centralizado para parsing português
+        return Double.fromPortugueseString(text) ?? 0.0
     }
     
     private func handleAddProduct() {
@@ -284,10 +284,10 @@ public struct ManualInputForm: View {
         let trimmedName = productName.trimmingCharacters(in: .whitespacesAndNewlines)
         let price = parsePrice(from: priceText)
         
-        let productData = ProductData(name: trimmedName, price: price, captureMethod: .manual)  // ✅ ADICIONADO: captureMethod
+        let productData = ProductData(name: trimmedName, price: price, captureMethod: .manual)
         onAdd(productData)
         
-        // Reset form
+        // Reset form com formatação segura
         productName = ""
         priceText = ""
         nameError = nil
