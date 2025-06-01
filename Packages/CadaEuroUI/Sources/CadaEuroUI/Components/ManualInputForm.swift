@@ -51,11 +51,18 @@ public struct ManualInputForm: View {
     }
     
     public init(
+        initialData: ProductData? = nil,
         onAdd: @escaping (ProductData) -> Void,
         onCancel: @escaping () -> Void
     ) {
         self.onAdd = onAdd
         self.onCancel = onCancel
+        
+        // Pre-fill com dados do scanner se fornecidos
+        if let data = initialData {
+            self._productName = State(initialValue: data.name)
+            self._priceText = State(initialValue: String(format: "%.2f", data.price).replacingOccurrences(of: ".", with: ","))
+        }
     }
     
     public var body: some View {
@@ -77,9 +84,31 @@ public struct ManualInputForm: View {
         .padding(themeProvider.theme.spacing.xl)
         .background(themeProvider.theme.colors.cadaEuroBackground)
         .onAppear {
-            // Foco automático no nome do produto
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
-                focusedField = .name
+            // ✅ Configuração inicial baseada nos dados fornecidos
+            if !productName.isEmpty || !priceText.isEmpty {
+                // Validar dados pré-preenchidos
+                if !productName.isEmpty {
+                    validateProductName(productName)
+                }
+                if !priceText.isEmpty {
+                    formatAndValidatePrice(priceText)
+                }
+                
+                // Foco no primeiro campo com erro ou no nome
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                    if nameError != nil {
+                        focusedField = .name
+                    } else if priceError != nil {
+                        focusedField = .price
+                    } else {
+                        focusedField = .name  // Default
+                    }
+                }
+            } else {
+                // Foco automático no nome do produto para entrada manual limpa
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                    focusedField = .name
+                }
             }
         }
     }
@@ -89,11 +118,18 @@ public struct ManualInputForm: View {
     @ViewBuilder
     private var headerView: some View {
         VStack(spacing: themeProvider.theme.spacing.sm) {
-            
-            Text("Preencha o nome e preço do produto")
-                .font(themeProvider.theme.typography.bodyMedium)
-                .foregroundColor(themeProvider.theme.colors.cadaEuroTextSecondary)
-                .multilineTextAlignment(.center)
+            // ✅ Instrução contextual baseada na origem dos dados
+            if !productName.isEmpty || !priceText.isEmpty {
+                Text("Confirme ou edite os dados detectados")
+                    .font(themeProvider.theme.typography.bodyMedium)
+                    .foregroundColor(themeProvider.theme.colors.cadaEuroTextSecondary)
+                    .multilineTextAlignment(.center)
+            } else {
+                Text("Preencha o nome e preço do produto")
+                    .font(themeProvider.theme.typography.bodyMedium)
+                    .foregroundColor(themeProvider.theme.colors.cadaEuroTextSecondary)
+                    .multilineTextAlignment(.center)
+            }
         }
     }
     
@@ -155,7 +191,7 @@ public struct ManualInputForm: View {
                     .fontWeight(.medium)
                     .foregroundColor(themeProvider.theme.colors.cadaEuroTextSecondary)
                 
-                TextField("0,00", text: $priceText)
+                TextField("1,99", text: $priceText)
                     .font(themeProvider.theme.typography.bodyLarge)
                     .focused($focusedField, equals: .price)
 #if os(iOS)
@@ -205,11 +241,13 @@ public struct ManualInputForm: View {
                 handleAddProduct()
             }
             
-            // ✅ Usar ActionButton para cancelar também
+            // ✅ Usar ActionButton para cancelar também com haptic feedback
             ActionButton(
                 "Cancelar",
                 type: .secondary
             ) {
+                // ✅ Haptic feedback para cancelamento
+                HapticManager.shared.feedback(.light)
                 onCancel()
             }
         }
@@ -334,4 +372,26 @@ public struct ManualInputForm: View {
     }
     .themeProvider(.darkPreview)
     .preferredColorScheme(.dark)
+}
+
+#Preview("Manual Input Form - Pre-filled") {
+    ManualInputForm(
+        initialData: ProductData(name: "Leite Mimosa", price: 1.29, captureMethod: .scanner)
+    ) { productData in
+        print("Product confirmed: \(productData.name) - €\(productData.price)")
+    } onCancel: {
+        print("Cancelled")
+    }
+    .themeProvider(.preview)
+}
+
+#Preview("Manual Input Form - Long Name") {
+    ManualInputForm(
+        initialData: ProductData(name: "Leite Meio Gordo UHT Pasteurizado Enriquecido", price: 2.49, captureMethod: .scanner)
+    ) { productData in
+        print("Product confirmed: \(productData.name) - €\(productData.price)")
+    } onCancel: {
+        print("Cancelled")
+    }
+    .themeProvider(.preview)
 }

@@ -100,7 +100,7 @@ public extension Double {
     /// Verifica se o valor está dentro dos limites de preço válidos
     ///
     /// - Returns: Bool indicando se está entre BusinessRules.minPrice e BusinessRules.maxPrice
-    /// - Use Case: Validação em ManualInputForm, ProductConfirmationDialog
+    /// - Use Case: Validação em ManualInputForm para entrada de preços
     /// - Integration: Conecta com BusinessRules para limites centralizados
     ///
     /// ## Exemplo

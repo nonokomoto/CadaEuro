@@ -52,35 +52,35 @@ public struct ColorTokens {
     public init(colorScheme: ColorScheme) {
         switch colorScheme {
         case .dark:
-            // Dark Mode
-            self.cadaEuroBackground = Color(hex: "#000000") // Preto puro Apple Store
-            self.cadaEuroComponentBackground = Color(hex: "#1C1C1E") // Cinza escuro Apple
-            self.cadaEuroTextPrimary = Color(hex: "#FFFFFF") // Branco puro
-            self.cadaEuroTextSecondary = Color(hex: "#EBEBF5").opacity(0.6) // Branco com 60% opacidade
-            self.cadaEuroTextTertiary = Color(hex: "#EBEBF5").opacity(0.3) // Branco com 30% opacidade
-            self.cadaEuroAccent = Color(hex: "#007AFF") // Apple System Blue
-            self.cadaEuroTotalPrice = Color(hex: "#007AFF").opacity(0.4) // Glow azul com 40% opacidade
-            self.cadaEuroSuccess = Color.green
-            self.cadaEuroError = Color.red
-            self.cadaEuroWarning = Color.orange
-            self.cadaEuroDisabled = Color(hex: "#3A3A3C")
-            self.cadaEuroSeparator = Color(hex: "#38383A")
+            // Dark Mode - Elegante, Acessível e Moderno
+            self.cadaEuroBackground = Color(hex: "#0A0A0B") // Preto suave, mais elegante que puro
+            self.cadaEuroComponentBackground = Color(hex: "#1A1A1C") // Cinza muito escuro, sofisticado
+            self.cadaEuroTextPrimary = Color(hex: "#F5F5F7") // Branco suave, menos agressivo
+            self.cadaEuroTextSecondary = Color(hex: "#98989D") // Cinza médio, elegante
+            self.cadaEuroTextTertiary = Color(hex: "#6D6D70") // Cinza sutil
+            self.cadaEuroAccent = Color(hex: "#0A84FF") // Azul moderno, levemente mais vibrante
+            self.cadaEuroTotalPrice = Color(hex: "#0A84FF").opacity(0.3) // Glow sutil
+            self.cadaEuroSuccess = Color(hex: "#30D158") // Verde moderno
+            self.cadaEuroError = Color(hex: "#FF453A") // Vermelho suave
+            self.cadaEuroWarning = Color(hex: "#FF9F0A") // Laranja elegante
+            self.cadaEuroDisabled = Color(hex: "#48484A") // Quaternary label
+            self.cadaEuroSeparator = Color(hex: "#38383A") // Separador sutil
             self.cadaEuroWhiteText = Color(hex: "#FFFFFF")
             
         default:
-            // Light Mode
-            self.cadaEuroBackground = Color(hex: "#F8F9FA") // Cinza sofisticado luxury
-            self.cadaEuroComponentBackground = Color.white.opacity(0.85) // Branco com 85% de opacidade
-            self.cadaEuroTextPrimary = Color(hex: "#1C1C1E") // Preto Apple
-            self.cadaEuroTextSecondary = Color(hex: "#3C3C43") // Cinza médio
-            self.cadaEuroTextTertiary = Color(hex: "#8E8E93") // Cinza claro
-            self.cadaEuroAccent = Color(hex: "#007AFF") // Apple System Blue
+            // Light Mode - Minimalista, Elegante e Sofisticado
+            self.cadaEuroBackground = Color(hex: "#FAFAFA") // Branco quente, mais suave
+            self.cadaEuroComponentBackground = Color(hex: "#F8F9FA") // Cinza muito claro, elegante
+            self.cadaEuroTextPrimary = Color(hex: "#1A1A1A") // Preto suave, não puro
+            self.cadaEuroTextSecondary = Color(hex: "#6B7280") // Cinza moderno, equilibrado
+            self.cadaEuroTextTertiary = Color(hex: "#9CA3AF") // Cinza claro, sutil
+            self.cadaEuroAccent = Color(hex: "#0066CC") // Azul refinado, menos vibrante
             self.cadaEuroTotalPrice = Color.clear // Sem glow no modo claro
-            self.cadaEuroSuccess = Color.green
-            self.cadaEuroError = Color.red
-            self.cadaEuroWarning = Color.orange
-            self.cadaEuroDisabled = Color(hex: "#C7C7CC")
-            self.cadaEuroSeparator = Color(hex: "#C6C6C8")
+            self.cadaEuroSuccess = Color(hex: "#059669") // Verde elegante, menos saturado
+            self.cadaEuroError = Color(hex: "#DC2626") // Vermelho sofisticado
+            self.cadaEuroWarning = Color(hex: "#D97706") // Laranja equilibrado
+            self.cadaEuroDisabled = Color(hex: "#D1D5DB") // Cinza suave
+            self.cadaEuroSeparator = Color(hex: "#E5E7EB") // Separador muito sutil
             self.cadaEuroWhiteText = Color(hex: "#FFFFFF")
         }
     }

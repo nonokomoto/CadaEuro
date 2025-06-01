@@ -35,6 +35,9 @@ public struct ShoppingListView: View {
     @State private var showingStats = false
     @State private var showingSettings = false
     
+    // MARK: - Scanner Confirmation State
+    @State private var scannedProductData: ProductData?
+    
     public init() {}
     
     // MARK: - Internal Access for Previews
@@ -301,12 +304,14 @@ public struct ShoppingListView: View {
     @ViewBuilder
     private var manualInputSheet: some View {
         NavigationStack {
-            // ✅ Componente ManualInputForm finalizado
+            // ✅ Componente ManualInputForm finalizado - com suporte a dados do scanner
             ManualInputForm(
+                initialData: scannedProductData,
                 onAdd: { item in
                     CadaEuroLogger.ui("Item added via manual input", component: "ManualInputForm", metadata: [
                         "item_name": item.name,
-                        "item_price": String(item.price)
+                        "item_price": String(item.price),
+                        "is_from_scanner": scannedProductData != nil ? "true" : "false"
                     ])
                     let shoppingItem = ShoppingListItem(
                         name: item.name, 
@@ -315,10 +320,12 @@ public struct ShoppingListView: View {
                     )
                     viewModel.addItem(shoppingItem)
                     showingManualInput = false
+                    scannedProductData = nil // Limpar dados do scanner
                 },
                 onCancel: {
                     CadaEuroLogger.ui("Manual input cancelled", component: "ManualInputForm")
                     showingManualInput = false
+                    scannedProductData = nil // Limpar dados do scanner
                 }
             )
             .navigationTitle("Adicionar Produto")
@@ -345,24 +352,31 @@ public struct ShoppingListView: View {
     
     @ViewBuilder
     private var scannerView: some View {
-        // ✅ Componente ScannerOverlay finalizado
+        // ✅ Componente ScannerOverlay finalizado - NOVO FLUXO
         ScannerOverlay(
-            onItemScanned: { product, price in
+            onItemScanned: { productData in
                 CadaEuroLogger.ocr("Product scanned successfully", confidence: 0.85, metadata: [
-                    "product_name": product,
-                    "price": String(price ?? 0.0)
+                    "product_name": productData.name,
+                    "price": String(productData.price)
                 ])
-                let item = ShoppingListItem(name: product, price: price ?? 0.0, captureMethod: .scanner)
-                viewModel.addItem(item)
+                
+                // Novo fluxo simplificado: usar ManualInputForm com dados pré-preenchidos
+                scannedProductData = productData
                 showingScanner = false
+                showingManualInput = true
             },
             onCancel: {
                 CadaEuroLogger.ui("Scanner cancelled", component: "ScannerOverlay")
                 showingScanner = false
+            },
+            onFallbackToManual: {
+                CadaEuroLogger.ui("Scanner fallback to manual", component: "ScannerOverlay")
+                showingScanner = false
+                showingManualInput = true
             }
         )
     }
-    
+
     @ViewBuilder
     private var savedListsView: some View {
         NavigationStack {

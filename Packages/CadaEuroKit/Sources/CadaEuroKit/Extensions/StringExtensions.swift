@@ -352,7 +352,7 @@ public extension String {
     ///
     /// - Returns: Double? do valor extraído ou nil se inválido
     /// - Format: Suporta "12,50", "1,99", "0,05"
-    /// - Integration: Usado por ManualInputForm e ProductConfirmationDialog
+    /// - Integration: Usado por ManualInputForm para validação de entrada
     func extractPortuguesePrice() -> Double? {
         let normalized = self
             .replacingOccurrences(of: ",", with: ".")
