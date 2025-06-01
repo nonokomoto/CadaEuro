@@ -121,7 +121,8 @@ public struct TotalDisplay: View {
         if let onSaveList = onSaveList {
             Button("Guardar Lista") {
                 onSaveList()
-            }
+            } 
+
         }
         
         if let onNewList = onNewList {

@@ -43,6 +43,10 @@ public struct ColorTokens {
     /// Cor para bordas e separadores
     public let cadaEuroSeparator: Color
     
+    // MARK: - Constantes
+    /// Cor branca pura para texto em botões primários
+    public let cadaEuroWhiteText: Color
+    
     // MARK: - Initializer
     /// Inicializa os tokens de cores com base no esquema de cores atual
     public init(colorScheme: ColorScheme) {
@@ -61,6 +65,7 @@ public struct ColorTokens {
             self.cadaEuroWarning = Color.orange
             self.cadaEuroDisabled = Color(hex: "#3A3A3C")
             self.cadaEuroSeparator = Color(hex: "#38383A")
+            self.cadaEuroWhiteText = Color(hex: "#FFFFFF")
             
         default:
             // Light Mode
@@ -76,6 +81,7 @@ public struct ColorTokens {
             self.cadaEuroWarning = Color.orange
             self.cadaEuroDisabled = Color(hex: "#C7C7CC")
             self.cadaEuroSeparator = Color(hex: "#C6C6C8")
+            self.cadaEuroWhiteText = Color(hex: "#FFFFFF")
         }
     }
 }

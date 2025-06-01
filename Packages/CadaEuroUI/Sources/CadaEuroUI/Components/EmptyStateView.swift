@@ -51,20 +51,9 @@ public struct EmptyStateView: View {
         VStack(spacing: themeProvider.theme.spacing.xl) {
             // Ícone principal com animação
             ZStack {
-                // Background circle com gradiente sutil
-                Circle()
-                    .fill(iconBackgroundGradient)
-                    .frame(width: 120, height: 120)
-                    .scaleEffect(isAnimating ? 1.05 : 1.0)
-                    .animation(
-                        Animation.easeInOut(duration: 2.0).repeatForever(autoreverses: true),
-                        value: isAnimating
-                    )
-                
                 // Ícone principal
                 Image(systemName: type.systemImage)
-                    .font(.system(size: 40, weight: .light))
-                    .foregroundColor(themeProvider.theme.colors.cadaEuroAccent)
+                    .font(.system(size: 30, weight: .light))
                     .scaleEffect(isAnimating ? 1.02 : 1.0)
                     .animation(
                         Animation.easeInOut(duration: 2.0).repeatForever(autoreverses: true),
@@ -74,13 +63,8 @@ public struct EmptyStateView: View {
             
             // Título e subtítulo
             VStack(spacing: themeProvider.theme.spacing.sm) {
-                Text(type.title)
-                    .font(themeProvider.theme.typography.titleLarge)
-                    .foregroundColor(themeProvider.theme.colors.cadaEuroTextPrimary)
-                    .multilineTextAlignment(.center)
-                
                 Text(type.subtitle)
-                    .font(themeProvider.theme.typography.bodyMedium)
+                    .font(themeProvider.theme.typography.bodySmall)
                     .foregroundColor(themeProvider.theme.colors.cadaEuroTextSecondary)
                     .multilineTextAlignment(.center)
                     .lineLimit(nil)

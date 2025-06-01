@@ -10,7 +10,7 @@ public enum ActionType: String, CaseIterable {
     @MainActor
     func textColor(for themeProvider: ThemeProvider) -> Color {
         switch self {
-        case .primary: return themeProvider.theme.colors.cadaEuroComponentBackground
+        case .primary: return themeProvider.theme.colors.cadaEuroWhiteText
         case .secondary: return themeProvider.theme.colors.cadaEuroAccent
         case .destructive: return themeProvider.theme.colors.cadaEuroComponentBackground
         }

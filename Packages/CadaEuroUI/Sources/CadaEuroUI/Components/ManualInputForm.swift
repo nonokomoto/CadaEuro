@@ -60,7 +60,7 @@ public struct ManualInputForm: View {
     
     public var body: some View {
         VStack(spacing: themeProvider.theme.spacing.xl) {
-            // Header
+           // ✅ HeaderView finalizado
             headerView
             
             // Form Fields
@@ -89,9 +89,6 @@ public struct ManualInputForm: View {
     @ViewBuilder
     private var headerView: some View {
         VStack(spacing: themeProvider.theme.spacing.sm) {
-            Text("Adicionar Produto")
-                .font(themeProvider.theme.typography.titleLarge)
-                .foregroundColor(themeProvider.theme.colors.cadaEuroTextPrimary)
             
             Text("Preencha o nome e preço do produto")
                 .font(themeProvider.theme.typography.bodyMedium)
@@ -229,42 +226,14 @@ public struct ManualInputForm: View {
     // MARK: - Methods
     
     private func validateProductName(_ name: String) {
-        // ✅ USAR VALIDATORS: Validação centralizada ao invés de StringExtensions direto
-        let validation = ProductValidator.validateProductName(name)
+        // Verificar apenas se o nome não está vazio
+        let trimmedName = name.trimmingCharacters(in: .whitespacesAndNewlines)
         
-        if !validation.isValid {
-            if let firstError = validation.errors.first {
-                switch firstError {
-                case .invalidProductName(let reason):
-                    if reason.contains("vazio") {
-                        nameError = .emptyName
-                    } else if reason.contains("exceder") {
-                        nameError = .nameTooLong
-                    } else {
-                        nameError = .emptyName
-                    }
-                default:
-                    nameError = .emptyName
-                }
-            } else {
-                nameError = .emptyName
-            }
+        if trimmedName.isEmpty {
+            nameError = .emptyName
         } else {
             nameError = nil
-            
-            // ✅ USAR VALIDATORS: Aplicar sugestões de formatação
-            if !validation.suggestions.isEmpty {
-                for suggestion in validation.suggestions {
-                    if suggestion.contains("Sugestão de formatação") {
-                        // Extrair nome sugerido da string
-                        let cleanSuggestion = suggestion.replacingOccurrences(of: "Sugestão de formatação: '", with: "")
-                            .replacingOccurrences(of: "'", with: "")
-                        if cleanSuggestion != name && !cleanSuggestion.isEmpty {
-                            productName = cleanSuggestion
-                        }
-                    }
-                }
-            }
+            // Não aplicar sugestões de formatação, apenas aceitar o nome como está
         }
     }
     
@@ -324,17 +293,13 @@ public struct ManualInputForm: View {
         
         let price = parsePrice(from: priceText)
         
-        // ✅ USAR VALIDATORS: Validação completa antes de adicionar
-        let validation = ProductValidator.validate(
-            name: productName,
-            price: price,
-            captureMethod: .manual
-        )
+        // Validar apenas o preço, o nome já foi validado anteriormente
+        let priceValidation = ProductValidator.validatePrice(price, captureMethod: .manual)
         
-        if validation.isValid {
-            // ✅ USAR StringExtensions: Apenas para normalização básica
-            let normalizedName = productName.normalizedProductName
-            let productData = ProductData(name: normalizedName, price: price, captureMethod: .manual)
+        if priceValidation.isValid {
+            // Usar o nome como está, sem normalização adicional
+            let trimmedName = productName.trimmingCharacters(in: .whitespacesAndNewlines)
+            let productData = ProductData(name: trimmedName, price: price, captureMethod: .manual)
             onAdd(productData)
             
             // Reset form
@@ -344,9 +309,9 @@ public struct ManualInputForm: View {
             priceError = nil
             focusedField = .name
         } else {
-            // ✅ USAR VALIDATORS: Mostrar erros de validação final
-            if let firstError = validation.errors.first {
-                print("⚠️ Validation error: \(firstError.localizedDescription)")
+            // Mostrar erros de validação apenas para o preço
+            if let firstError = priceValidation.errors.first {
+                print("⚠️ Price validation error: \(firstError.localizedDescription)")
             }
         }
     }
