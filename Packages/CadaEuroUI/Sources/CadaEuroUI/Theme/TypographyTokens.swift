@@ -3,8 +3,6 @@ import SwiftUI
 /// Tokens de tipografia da aplicação CadaEuro
 public struct TypographyTokens {
     // MARK: - Heading
-    /// Fonte para o total principal (48pt, Medium)
-    public let totalPrice: Font
     
     /// Fonte para títulos de secção (28pt, Medium/Bold)
     public let titleLarge: Font
@@ -34,7 +32,6 @@ public struct TypographyTokens {
     public init() {
         // Utilizamos a fonte do sistema (SF Pro) para garantir consistência com o iOS
         // e suporte completo ao Dynamic Type
-        self.totalPrice = .system(size: 48, weight: .medium, design: .default)
         self.titleLarge = .system(size: 28, weight: .semibold, design: .default)
         self.titleMedium = .system(size: 20, weight: .medium, design: .default)
         self.bodyLarge = .system(size: 18, weight: .medium, design: .default)
@@ -42,5 +39,21 @@ public struct TypographyTokens {
         self.bodySmall = .system(size: 16, weight: .regular, design: .default)
         self.caption = .system(size: 14, weight: .medium, design: .default)
         self.captionSmall = .system(size: 12, weight: .medium, design: .default)
+    }
+    
+    // MARK: - Computed Properties
+    
+    /// Font premium para display de total
+    ///
+    /// - Returns: Font otimizada para valor monetário principal
+    /// - Use Case: TotalDisplay component
+    /// - Features: Monospace numbers, high contrast, premium weight
+    public var totalPrice: Font {
+        return Font.system(
+            .largeTitle,
+            design: .rounded,
+            weight: .semibold
+        )
+        .monospacedDigit()
     }
 }

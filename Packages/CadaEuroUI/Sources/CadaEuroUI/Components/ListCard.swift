@@ -1,4 +1,5 @@
 import SwiftUI
+import CadaEuroKit
 
 /// Model simplificado para preview (até SwiftData estar implementado)
 public struct ShoppingList: Identifiable, Hashable, Sendable {
@@ -13,6 +14,11 @@ public struct ShoppingList: Identifiable, Hashable, Sendable {
         self.dateCompleted = dateCompleted
         self.itemCount = itemCount
         self.totalAmount = totalAmount
+    }
+    
+    /// ✅ USAR DateExtensions: Agrupamento temporal para SavedListsView
+    public var groupingDescription: String {
+        return dateCompleted.groupingDescription
     }
 }
 
@@ -222,10 +228,8 @@ public struct ListCard: View {
     }
     
     private var formattedDate: String {
-        let formatter = DateFormatter()
-        formatter.dateFormat = "d MMM"
-        formatter.locale = Locale(identifier: "pt_PT")
-        return formatter.string(from: shoppingList.dateCompleted)
+        // ✅ USAR DateExtensions: Formatação específica para SavedListsView
+        return shoppingList.dateCompleted.asSavedListDate
     }
     
     private var itemsCountText: String {
@@ -239,7 +243,9 @@ public struct ListCard: View {
     
     private var accessibilityLabel: String {
         let name = shoppingList.name.isEmpty ? "Lista de compras" : shoppingList.name
-        return "\(name), \(formattedDate), \(itemsCountText), total \(formattedTotal)"
+        // ✅ USAR DateExtensions: Data acessível para VoiceOver
+        let accessibleDate = shoppingList.dateCompleted.asAccessibleDate
+        return "\(name), concluída \(accessibleDate), \(itemsCountText), total \(formattedTotal)"
     }
     
     // MARK: - Actions
@@ -350,10 +356,53 @@ extension ShoppingList {
     .preferredColorScheme(.dark)
 }
 
-#Preview("List Card Editing") {
-    @Previewable @State var cardState: ListCardState = .editing
+// MARK: - Collection Extensions for Temporal Organization
+
+/// Extensões para coleções de ShoppingList com funcionalidades temporais
+public extension Collection where Element == ShoppingList {
     
-    ListCard(
+    /// ✅ USAR DateExtensions: Ordena listas por data (mais recente primeiro)
+    /// - Use Case: Lista principal ordenada por relevância
+    /// - Returns: Array ordenado cronologicamente
+    var sortedByDate: [ShoppingList] {
+        return self.sorted { $0.dateCompleted > $1.dateCompleted }
+    }
+    
+    /// ✅ USAR DateExtensions: Filtra listas do período atual
+    /// - Use Case: Destaque para listas recentes
+    /// - Returns: Array com listas de hoje, ontem e esta semana
+    var recentLists: [ShoppingList] {
+        return self.filter { $0.dateCompleted.isThisWeek || $0.dateCompleted.isToday || $0.dateCompleted.isYesterday }
+    }
+    
+    /// ✅ USAR DateExtensions: Filtra listas do mês atual
+    /// - Use Case: Filtro mensal em SavedListsView
+    /// - Returns: Array com listas do mês corrente
+    var fromThisMonth: [ShoppingList] {
+        return self.filter { $0.dateCompleted.isThisMonth }
+    }
+    
+    /// ✅ USAR DateExtensions: Encontra lista mais recente
+    /// - Use Case: "Última lista completada"
+    /// - Returns: ShoppingList? com data mais recente
+    var mostRecent: ShoppingList? {
+        return self.max { $0.dateCompleted < $1.dateCompleted }
+    }
+    
+    /// ✅ USAR DateExtensions: Agrupa listas por período temporal
+    /// - Use Case: Organizar SavedListsView por "Hoje", "Esta semana", etc.
+    /// - Returns: Dictionary agrupado por descrição temporal
+    func groupedByPeriod() -> [String: [ShoppingList]] {
+        return Dictionary(grouping: self) { list in
+            list.groupingDescription
+        }
+    }
+}
+
+#Preview("List Card Editing") {
+    @State var cardState: ListCardState = .editing
+    
+    return ListCard(
         shoppingList: ShoppingList.sampleLists[0],
         onRename: { print("Renamed: \($0)") }
     )

@@ -1,233 +1,281 @@
 import SwiftUI
+import CadaEuroKit
 
-/// Estados do display de total
-public enum TotalDisplayState: Sendable {
-    case empty      // €0.00
-    case normal     // Valor padrão
-    case large      // Valores acima de €1000
-    case loading    // Durante cálculos
-    
-    public var isInteractive: Bool {
-        switch self {
-        case .loading: return false
-        default: return true
-        }
-    }
+/// Estados do TotalDisplay
+public enum TotalDisplayState: Sendable, Equatable {
+    case normal         // Estado padrão
+    case empty          // Lista vazia (€0,00)
+    case large          // Valor alto (destaque especial)
+    case loading        // Carregando cálculos
 }
 
-/// Display premium do total com efeitos visuais e menu contextual
+/// Display premium para o total da lista de compras
+///
+/// Componente central da aplicação que mostra o valor total em destaque,
+/// com background transparente para usar o background do parent.
+/// O valor total mantém sempre cor azul (accent) independente do estado.
 public struct TotalDisplay: View {
     @Environment(\.themeProvider) private var themeProvider
     @Environment(\.colorScheme) private var colorScheme
     
-    private let total: Double
-    private let onSaveList: () -> Void
-    private let onNewList: () -> Void
-    private let isLoading: Bool
+    // MARK: - Properties
+    private let amount: Double
+    private let state: TotalDisplayState
+    private let onSaveList: (() -> Void)?
+    private let onNewList: (() -> Void)?
     
+    // MARK: - State
     @State private var isPressed = false
     @State private var showingMenu = false
-    @State private var animateValue = false
-    
-    // MARK: - Initializers
+    @State private var showingConfirmNewList = false
     
     public init(
-        total: Double,
-        isLoading: Bool = false,
-        onSaveList: @escaping () -> Void,
-        onNewList: @escaping () -> Void
+        amount: Double,
+        state: TotalDisplayState = .normal,
+        onSaveList: (() -> Void)? = nil,
+        onNewList: (() -> Void)? = nil
     ) {
-        self.total = total
-        self.isLoading = isLoading
+        self.amount = amount
+        self.state = state
         self.onSaveList = onSaveList
         self.onNewList = onNewList
     }
     
     public var body: some View {
         VStack(spacing: themeProvider.theme.spacing.sm) {
-            // Label "Total"
-            Text("Total")
-                .font(themeProvider.theme.typography.bodyMedium)
-                .foregroundColor(themeProvider.theme.colors.cadaEuroTextSecondary)
-                .animation(themeProvider.theme.animation.spring, value: totalState)
+            // Label superior
+            totalLabel
             
-            // Valor principal com animação
-            Group {
-                if isLoading {
-                    loadingView
-                } else {
-                    totalValueView
+            // Valor principal
+            totalValue
+                .contentShape(Rectangle())
+                .scaleEffect(isPressed ? 0.98 : 1.0)
+                .onTapGesture { }
+                .onLongPressGesture(minimumDuration: 0) { pressing in
+                    withAnimation(themeProvider.theme.animation.quick) {
+                        isPressed = pressing
+                    }
+                    
+                    // ✅ TODO: SensoryFeedback quando disponível
+                    // .sensoryFeedback(.impact(.medium), trigger: showingMenu)
+                } perform: {
+                    if onSaveList != nil || onNewList != nil {
+                        showingMenu = true
+                    }
                 }
-            }
+                .confirmationDialog(
+                    "Opções da Lista",
+                    isPresented: $showingMenu,
+                    titleVisibility: .visible
+                ) {
+                    menuActions
+                }
+                .alert(
+                    "Nova Lista",
+                    isPresented: $showingConfirmNewList
+                ) {
+                    newListConfirmation
+                } message: {
+                    Text("A lista atual será guardada automaticamente. Pretende criar uma nova lista?")
+                }
         }
         .padding(themeProvider.theme.spacing.lg)
-        // ✅ Background removido - usa background do parent
-        .scaleEffect(isPressed ? 0.98 : 1.0)
-        .animation(themeProvider.theme.animation.quick, value: isPressed)
-        // Long press gesture para menu
-        .onLongPressGesture(minimumDuration: 0.5) {
-            if totalState.isInteractive {
-                showingMenu = true
-            }
-        }
-        .onLongPressGesture(minimumDuration: 0) { pressing in
-            if totalState.isInteractive {
-                isPressed = pressing
-            }
-        } perform: {}
-        // Menu contextual
-        .confirmationDialog("Opções da lista", isPresented: $showingMenu) {
-            menuActions
-        } message: {
-            Text("Escolha uma ação para a lista atual")
-        }
-        // Acessibilidade
-        .accessibilityElement(children: .ignore)
+        // ✅ SEM BACKGROUND - usa background do parent
+        .animation(themeProvider.theme.animation.spring, value: amount)
+        .animation(themeProvider.theme.animation.spring, value: state)
+        .accessibilityElement(children: .combine)
         .accessibilityLabel(accessibilityLabel)
         .accessibilityHint(accessibilityHint)
-        .accessibilityAddTraits(totalState.isInteractive ? [.isButton] : [])
-        // Animação quando valor muda
-        .onChange(of: total) { _, _ in
-            withAnimation(themeProvider.theme.animation.spring) {
-                animateValue.toggle()
-            }
-        }
+        .accessibilityAddTraits(.updatesFrequently)
     }
     
     // MARK: - Subviews
     
     @ViewBuilder
-    private var totalValueView: some View {
-        Text(formattedTotal)
-            .font(themeProvider.theme.typography.totalPrice)
-            .foregroundColor(totalColor)
-            .multilineTextAlignment(.center)
-            .scaleEffect(animateValue ? 1.05 : 1.0)
-            .animation(themeProvider.theme.animation.spring, value: animateValue)
-            .animation(themeProvider.theme.animation.spring, value: total)
+    private var totalLabel: some View {
+        Text("Total")
+            .font(themeProvider.theme.typography.bodyMedium)
+            .foregroundColor(labelColor)
+            .accessibilityHidden(true)
     }
     
     @ViewBuilder
-    private var loadingView: some View {
-        HStack(spacing: themeProvider.theme.spacing.sm) {
-            ProgressView()
-                .scaleEffect(0.8)
-                .tint(themeProvider.theme.colors.cadaEuroAccent)
-            
-            Text("A calcular...")
-                .font(themeProvider.theme.typography.totalPrice)
-                .foregroundColor(themeProvider.theme.colors.cadaEuroTextSecondary)
-        }
+    private var totalValue: some View {
+        Text(formattedAmount)
+            .font(themeProvider.theme.typography.totalPrice)
+            .foregroundColor(valueColor) // ✅ SEMPRE AZUL (accent)
+            .multilineTextAlignment(.center)
+            .lineLimit(1)
+            .minimumScaleFactor(0.8)
+            // ✅ Glow effect apenas em dark mode, sem background próprio
+            .shadow(
+                color: glowColor,
+                radius: glowRadius,
+                x: 0,
+                y: 0
+            )
     }
     
     @ViewBuilder
     private var menuActions: some View {
-        Button("Guardar lista") {
-            onSaveList()
+        if let onSaveList = onSaveList {
+            Button("Guardar Lista") {
+                onSaveList()
+            }
         }
         
-        Button("Nova lista") {
-            onNewList()
+        if let onNewList = onNewList {
+            Button("Nova Lista") {
+                if amount > 0 {
+                    showingConfirmNewList = true
+                } else {
+                    onNewList()
+                }
+            }
         }
         
-        Button("Cancelar", role: .cancel) {
-            // Dispensa automática
+        Button("Cancelar", role: .cancel) { }
+    }
+    
+    @ViewBuilder
+    private var newListConfirmation: some View {
+        Button("Criar Nova Lista") {
+            onNewList?()
         }
+        
+        Button("Cancelar", role: .cancel) { }
     }
     
     // MARK: - Computed Properties
     
-    private var totalState: TotalDisplayState {
-        if isLoading { return .loading }
-        if total == 0 { return .empty }
-        if total >= 1000 { return .large }
-        return .normal
+    private var formattedAmount: String {
+        // ✅ USAR DoubleExtensions: Formatação específica para TotalDisplay
+        return amount.asTotalDisplayPrice
     }
     
-    private var formattedTotal: String {
-        // ✅ USAR DoubleExtensions: Formatação premium para display principal
-        return total.asTotalDisplayPrice
+    private var labelColor: Color {
+        switch state {
+        case .loading:
+            return themeProvider.theme.colors.cadaEuroTextTertiary
+        default:
+            return themeProvider.theme.colors.cadaEuroTextSecondary
+        }
     }
     
-    private var totalColor: Color {
-        // ✅ Sempre usa cor accent (azul) - nunca vermelha
+    private var valueColor: Color {
+        // ✅ SEMPRE AZUL (accent) - Nunca muda independente do estado
         return themeProvider.theme.colors.cadaEuroAccent
     }
     
-    private var accessibilityLabel: String {
-        if isLoading {
-            return "Total da lista: A calcular"
+    // ✅ Glow effect apenas em dark mode sem background próprio
+    private var glowColor: Color {
+        if colorScheme == .dark && state != .empty {
+            return themeProvider.theme.colors.cadaEuroAccent.opacity(0.3)
+        } else {
+            return .clear
         }
-        // ✅ USAR DoubleExtensions: Acessibilidade natural
-        return "Total da lista: \(total.asCurrencyAccessible)"
+    }
+    
+    private var glowRadius: CGFloat {
+        if colorScheme == .dark && state != .empty {
+            return 20
+        } else {
+            return 0
+        }
+    }
+    
+    private var accessibilityLabel: String {
+        switch state {
+        case .loading:
+            return "Total da lista: calculando"
+        case .empty:
+            return "Total da lista: \(amount.asCurrencyAccessible)"
+        default:
+            return "Total da lista: \(amount.asCurrencyAccessible)"
+        }
     }
     
     private var accessibilityHint: String {
-        if isLoading {
-            return "Aguarde o cálculo do total"
+        if onSaveList != nil || onNewList != nil {
+            return "Prima e mantenha premido para opções da lista"
+        } else {
+            return "Total atual da sua lista de compras"
         }
-        return "Prima e mantenha premido para opções da lista"
+    }
+}
+
+// MARK: - State Helpers
+
+public extension TotalDisplay {
+    
+    /// Determina estado baseado no valor
+    ///
+    /// - Parameter amount: Valor a analisar
+    /// - Returns: TotalDisplayState apropriado
+    static func stateFor(amount: Double) -> TotalDisplayState {
+        if amount == 0.0 {
+            return .empty
+        } else if amount > 500.0 {
+            return .large
+        } else {
+            return .normal
+        }
+    }
+    
+    /// TotalDisplay com estado automático baseado no valor
+    ///
+    /// - Parameters:
+    ///   - amount: Valor total
+    ///   - onSaveList: Callback para guardar lista
+    ///   - onNewList: Callback para nova lista
+    /// - Returns: TotalDisplay configurado
+    static func automatic(
+        amount: Double,
+        onSaveList: (() -> Void)? = nil,
+        onNewList: (() -> Void)? = nil
+    ) -> TotalDisplay {
+        return TotalDisplay(
+            amount: amount,
+            state: stateFor(amount: amount),
+            onSaveList: onSaveList,
+            onNewList: onNewList
+        )
     }
 }
 
 // MARK: - Previews
 
-#Preview("Total Display - Normal") {
-    VStack(spacing: 24) {
-        TotalDisplay(total: 45.67) {
-            print("Save list")
-        } onNewList: {
-            print("New list")
-        }
+#Preview("Total Normal") {
+    VStack(spacing: 32) {
+        TotalDisplay(amount: 45.67, state: .normal)
         
-        TotalDisplay(total: 0.00) {
-            print("Save empty list")
-        } onNewList: {
-            print("New list")
-        }
-        
-        TotalDisplay(total: 1250.89) {
-            print("Save large list")
-        } onNewList: {
-            print("New list")
-        }
-    }
-    .padding()
-    // ✅ Background aplicado no preview para testar
-    .background(ThemeProvider.preview.theme.colors.cadaEuroBackground)
-    .themeProvider(.preview)
-}
-
-#Preview("Total Display - Loading") {
-    TotalDisplay(total: 123.45, isLoading: true) {
-        print("Save list")
-    } onNewList: {
-        print("New list")
+        TotalDisplay.automatic(
+            amount: 123.45,
+            onSaveList: { print("Save list") },
+            onNewList: { print("New list") }
+        )
     }
     .padding()
     .background(ThemeProvider.preview.theme.colors.cadaEuroBackground)
     .themeProvider(.preview)
 }
 
-#Preview("Total Display - Dark Mode") {
+#Preview("Total States") {
     VStack(spacing: 24) {
-        TotalDisplay(total: 89.99) {
-            print("Save list")
-        } onNewList: {
-            print("New list")
-        }
-        
-        TotalDisplay(total: 1500.00) {
-            print("Save large list")
-        } onNewList: {
-            print("New list")
-        }
-        
-        TotalDisplay(total: 25.50, isLoading: true) {
-            print("Save loading")
-        } onNewList: {
-            print("New list")
-        }
+        TotalDisplay(amount: 0.0, state: .empty)
+        TotalDisplay(amount: 45.67, state: .normal)
+        TotalDisplay(amount: 567.89, state: .large)
+        TotalDisplay(amount: 12.34, state: .loading)
+    }
+    .padding()
+    .background(ThemeProvider.preview.theme.colors.cadaEuroBackground)
+    .themeProvider(.preview)
+}
+
+#Preview("Total Dark Mode") {
+    VStack(spacing: 24) {
+        TotalDisplay(amount: 45.67, state: .normal)
+        TotalDisplay(amount: 567.89, state: .large)
     }
     .padding()
     .background(ThemeProvider.darkPreview.theme.colors.cadaEuroBackground)
@@ -235,33 +283,28 @@ public struct TotalDisplay: View {
     .preferredColorScheme(.dark)
 }
 
-#Preview("Total Display - Empty State") {
-    TotalDisplay(total: 0.00) {
-        print("Save empty list")
-    } onNewList: {
-        print("New list")
-    }
+#Preview("Total Empty State") {
+    TotalDisplay(amount: 0.0, state: .empty)
+        .padding()
+        .background(ThemeProvider.preview.theme.colors.cadaEuroBackground)
+        .themeProvider(.preview)
+}
+
+#Preview("Total with Actions") {
+    TotalDisplay(
+        amount: 89.43,
+        state: .normal,
+        onSaveList: { print("Saving list...") },
+        onNewList: { print("Creating new list...") }
+    )
     .padding()
     .background(ThemeProvider.preview.theme.colors.cadaEuroBackground)
     .themeProvider(.preview)
 }
 
-#Preview("Total Display - States Comparison") {
-    VStack(spacing: 16) {
-        // Empty
-        TotalDisplay(total: 0.00) { } onNewList: { }
-        
-        // Normal
-        TotalDisplay(total: 67.85) { } onNewList: { }
-        
-        // Large
-        TotalDisplay(total: 1234.56) { } onNewList: { }
-        
-        // Loading
-        TotalDisplay(total: 45.67, isLoading: true) { } onNewList: { }
-    }
-    .padding()
-    .background(ThemeProvider.darkPreview.theme.colors.cadaEuroBackground)
-    .themeProvider(.darkPreview)
-    .preferredColorScheme(.dark)
+#Preview("Total Loading") {
+    TotalDisplay(amount: 23.45, state: .loading)
+        .padding()
+        .background(ThemeProvider.preview.theme.colors.cadaEuroBackground)
+        .themeProvider(.preview)
 }

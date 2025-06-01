@@ -401,7 +401,7 @@ public struct VoiceRecorderView: View {
                 let randomError = errors.randomElement()!
                 handleError(randomError)
             } else {
-                // Mock transcription com StringExtensions para parse
+                // Mock transcription para validação
                 let mockTranscriptions = [
                     "Leite Mimosa 1,29 euros",
                     "Pão de forma 85 cêntimos", 
@@ -411,17 +411,33 @@ public struct VoiceRecorderView: View {
                 
                 let rawTranscription = mockTranscriptions.randomElement() ?? "Texto não reconhecido"
                 
-                // ✅ USAR StringExtensions: Parse inteligente de produto + preço
-                let (product, price) = rawTranscription.extractProductAndPrice()
+                // ✅ USAR VALIDATORS: Validação centralizada ao invés de StringExtensions direto
+                let validation = CadaEuroValidator.validateTextInput(rawTranscription, method: .voice)
                 
-                // ✅ USAR StringExtensions: Normalização de nome do produto
-                let normalizedProduct = product.normalizedProductName
-                
-                // ✅ USAR StringExtensions: Limpeza e formatação final
-                transcribedText = "\(normalizedProduct) \(price?.asCurrency ?? "")"
-                    .trimmedAndCleaned
-                
-                recorderState = .transcribed
+                if validation.isValid {
+                    // ✅ USAR VALIDATORS: Extrair produto validado
+                    let (product, price) = rawTranscription.extractProductAndPrice()
+                    let normalizedProduct = product.normalizedProductName
+                    
+                    transcribedText = "\(normalizedProduct) \(price?.asCurrency ?? "")"
+                        .trimmedAndCleaned
+                    
+                    recorderState = .transcribed
+                } else {
+                    // ✅ USAR VALIDATORS: Erro de validação
+                    if let firstError = validation.errors.first {
+                        switch firstError {
+                        case .invalidProductName(let reason):
+                            handleError(.transcriptionFailed)
+                        case .voiceValidationFailed(let reason, _):
+                            handleError(.transcriptionFailed)
+                        default:
+                            handleError(.transcriptionFailed)
+                        }
+                    } else {
+                        handleError(.transcriptionFailed)
+                    }
+                }
             }
         }
     }
@@ -486,14 +502,22 @@ public struct VoiceRecorderView: View {
             // ✅ ADICIONADO: Analytics tracking
             print("📊 Analytics: \(CaptureMethod.voice.analyticsName) - transcription_success")
             
-            // ✅ USAR StringExtensions: Parse final para envio
-            let (product, price) = transcribedText.extractProductAndPrice()
+            // ✅ USAR VALIDATORS: Validação final antes do envio
+            let validation = CadaEuroValidator.validateTextInput(transcribedText, method: .voice)
             
-            // ✅ USAR StringExtensions: Validação antes do envio
-            if product.isValidProductName && (price?.isValidPrice ?? false) {
+            if validation.isValid {
                 onTranscriptionComplete(transcribedText)
             } else {
-                // ✅ Fallback: Enviar texto original se parsing falhar
+                // ✅ USAR VALIDATORS: Warnings e suggestions para feedback
+                if !validation.warnings.isEmpty {
+                    print("⚠️ Warnings: \(validation.warnings.joined(separator: ", "))")
+                }
+                
+                if !validation.suggestions.isEmpty {
+                    print("💡 Suggestions: \(validation.suggestions.joined(separator: ", "))")
+                }
+                
+                // Enviar mesmo com warnings (não críticos)
                 onTranscriptionComplete(transcribedText)
             }
         }

@@ -246,47 +246,88 @@ public struct ProductConfirmationDialog: View {
     }
     
     private func validateProductName(_ name: String) {
-        // ✅ USAR StringExtensions: Validação centralizada
-        if !name.isValidProductName {
-            if name.trimmedAndCleaned.isEmpty {
-                nameError = .emptyName
-            } else if name.trimmedAndCleaned.count > BusinessRules.maxProductNameLength {
-                nameError = .nameTooLong
+        // ✅ USAR VALIDATORS: Validação centralizada ao invés de StringExtensions direto
+        let validation = ProductValidator.validateProductName(name)
+        
+        if !validation.isValid {
+            if let firstError = validation.errors.first {
+                switch firstError {
+                case .invalidProductName(let reason):
+                    if reason.contains("vazio") {
+                        nameError = .emptyName
+                    } else if reason.contains("exceder") {
+                        nameError = .nameTooLong
+                    } else {
+                        nameError = .emptyName
+                    }
+                default:
+                    nameError = .emptyName
+                }
             } else {
-                nameError = .emptyName // Fallback para caracteres perigosos
+                nameError = .emptyName
             }
         } else {
             nameError = nil
+            
+            // ✅ USAR VALIDATORS: Aplicar sugestões de formatação automática
+            if !validation.suggestions.isEmpty {
+                for suggestion in validation.suggestions {
+                    if suggestion.contains("Sugestão de formatação") {
+                        // Extrair nome sugerido da string
+                        let cleanSuggestion = suggestion.replacingOccurrences(of: "Sugestão de formatação: '", with: "")
+                            .replacingOccurrences(of: "'", with: "")
+                        if cleanSuggestion != name && !cleanSuggestion.isEmpty {
+                            productName = cleanSuggestion
+                        }
+                    }
+                }
+            }
         }
     }
     
     private func formatAndValidatePrice(_ text: String) {
-        // ✅ USAR StringExtensions: Validação de formato + limpeza automática
-        if !text.isValidPriceInput && !text.isEmpty {
-            // Limpa caracteres inválidos automaticamente
-            let cleaned = text.filter { "0123456789,".contains($0) }
-            
-            // Permite apenas uma vírgula
-            let components = cleaned.components(separatedBy: ",")
-            var formatted = components.first ?? ""
-            
-            if components.count > 1 {
-                let decimals = String(components[1].prefix(2))
-                formatted += "," + decimals
+        // ✅ USAR VALIDATORS: Validação de preço com contexto scanner
+        guard let price = text.extractPortuguesePrice() else {
+            if text.isEmpty {
+                priceError = .invalidPrice
+            } else {
+                priceError = .priceOutOfRange
             }
-            
-            if formatted != priceText {
-                priceText = formatted
-            }
+            return
         }
         
-        // ✅ USAR StringExtensions: Parse português + validação robusta
-        if text.isEmpty {
-            priceError = .invalidPrice
-        } else if let price = text.extractPortuguesePrice(), price.isValidPrice {
-            priceError = nil
+        let validation = ProductValidator.validatePrice(price, captureMethod: .scanner)
+        
+        if !validation.isValid {
+            if let firstError = validation.errors.first {
+                switch firstError {
+                case .invalidPrice(let reason):
+                    if reason.contains("limites") {
+                        priceError = .priceOutOfRange
+                    } else {
+                        priceError = .invalidPrice
+                    }
+                default:
+                    priceError = .invalidPrice
+                }
+            } else {
+                priceError = .invalidPrice
+            }
         } else {
-            priceError = .priceOutOfRange
+            priceError = nil
+            
+            // ✅ USAR VALIDATORS: Aplicar sugestões de arredondamento
+            if !validation.suggestions.isEmpty {
+                for suggestion in validation.suggestions {
+                    if suggestion.contains("arredondado") {
+                        // Aplicar arredondamento sugerido
+                        let rounded = price.roundedToEuro
+                        if rounded != price {
+                            priceText = rounded.asEditablePrice
+                        }
+                    }
+                }
+            }
         }
     }
     
@@ -298,17 +339,32 @@ public struct ProductConfirmationDialog: View {
     private func handleConfirm() {
         guard isFormValid else { return }
         
-        // ✅ USAR StringExtensions: Normalização final antes de confirmar
-        let normalizedName = productName.normalizedProductName
         let price = parsePrice(from: priceText)
-        let confirmedProduct = ProductData(name: normalizedName, price: price, captureMethod: .scanner)
         
-        withAnimation(themeProvider.theme.animation.quick) {
-            isVisible = false
-        }
+        // ✅ USAR VALIDATORS: Validação completa antes de confirmar
+        let validation = ProductValidator.validate(
+            name: productName,
+            price: price,
+            captureMethod: .scanner
+        )
         
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
-            onConfirm(confirmedProduct)
+        if validation.isValid {
+            // ✅ USAR StringExtensions: Apenas para normalização básica
+            let normalizedName = productName.normalizedProductName
+            let confirmedProduct = ProductData(name: normalizedName, price: price, captureMethod: .scanner)
+            
+            withAnimation(themeProvider.theme.animation.quick) {
+                isVisible = false
+            }
+            
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
+                onConfirm(confirmedProduct)
+            }
+        } else {
+            // ✅ USAR VALIDATORS: Mostrar erros de validação final
+            if let firstError = validation.errors.first {
+                print("⚠️ Validation error: \(firstError.localizedDescription)")
+            }
         }
     }
     
@@ -324,9 +380,19 @@ public struct ProductConfirmationDialog: View {
     
     // ✅ MÉTODOS AUXILIARES StringExtensions
     
-    /// Limpa dados OCR usando StringExtensions
+    /// Limpa dados OCR usando Validators + StringExtensions
     private func cleanupOCRData(_ data: ProductData) -> ProductData {
-        let cleanedName = data.name.cleanOCRText.normalizedProductName
+        // ✅ USAR VALIDATORS: Validação prévia dos dados OCR
+        let validation = CadaEuroValidator.validateTextInput(data.name, method: .scanner)
+        
+        let cleanedName = if validation.isValid {
+            data.name.cleanOCRText.normalizedProductName
+        } else {
+            // Usar sugestões se disponíveis
+            validation.suggestions.first?.replacingOccurrences(of: "Sugestão de formatação: '", with: "")
+                .replacingOccurrences(of: "'", with: "") ?? data.name.cleanOCRText
+        }
+        
         return ProductData(
             name: cleanedName,
             price: data.price,

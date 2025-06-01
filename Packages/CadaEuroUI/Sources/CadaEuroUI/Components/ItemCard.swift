@@ -29,14 +29,40 @@ public struct ShoppingItem: Identifiable, Hashable, Sendable {
         price * Double(quantity)
     }
     
-    /// Formatação do preço unitário usando DoubleExtensions
+    /// Formatação do preço unitário usando Validators
     public var formattedPrice: String {
-        price.asItemCardPrice  // ✅ USAR DoubleExtensions
+        // ✅ USAR VALIDATORS: Validação antes da formatação
+        let validation = ProductValidator.validatePrice(price, captureMethod: captureMethod)
+        
+        if validation.isValid {
+            return price.asItemCardPrice  // ✅ DoubleExtensions para formatação básica
+        } else {
+            // Fallback seguro para preços inválidos
+            return 0.0.asItemCardPrice
+        }
     }
     
-    /// Formatação do preço total usando DoubleExtensions
+    /// Formatação do preço total usando Validators
     public var formattedTotalPrice: String {
-        totalPrice.asItemCardPrice  // ✅ USAR DoubleExtensions
+        // ✅ USAR VALIDATORS: Validação completa do produto
+        let validation = ProductValidator.validate(
+            name: name,
+            price: price,
+            quantity: quantity,
+            captureMethod: captureMethod
+        )
+        
+        if validation.isValid {
+            return totalPrice.asItemCardPrice  // ✅ DoubleExtensions para formatação
+        } else {
+            // ✅ USAR VALIDATORS: Warnings não impedem exibição
+            if !validation.warnings.isEmpty {
+                print("⚠️ ItemCard warnings: \(validation.warnings.joined(separator: ", "))")
+            }
+            
+            // Exibir mesmo com warnings (não são críticos)
+            return totalPrice.asItemCardPrice
+        }
     }
 }
 
@@ -85,6 +111,11 @@ public struct ItemCard: View {
                     .foregroundColor(textColor)
                     .lineLimit(2)
                     .multilineTextAlignment(.leading)
+                
+                // ✅ USAR DateExtensions: Timestamp relativo do produto
+                Text(item.dateAdded.asItemCardDate)
+                    .font(themeProvider.theme.typography.caption)
+                    .foregroundColor(themeProvider.theme.colors.cadaEuroTextTertiary)
                 
                 // Indicador sutil de quantidade (só se > 1)
                 if item.quantity > 1 {
@@ -342,11 +373,29 @@ public struct ItemCard: View {
     // MARK: - Accessibility
     
     private var accessibilityLabel: String {
-        // ✅ USAR DoubleExtensions para acessibilidade
+        // ✅ USAR VALIDATORS: Validação antes de acessibilidade
+        let validation = ProductValidator.validate(
+            name: item.name,
+            price: item.price,
+            quantity: item.quantity,
+            captureMethod: item.captureMethod
+        )
+        
+        // ✅ DateExtensions + DoubleExtensions para formatação acessível
         var label = "\(item.name), \(item.totalPrice.asCurrencyAccessible)"
+        
+        // ✅ USAR DateExtensions: Data acessível para VoiceOver
+        label += ", adicionado \(item.dateAdded.asAccessibleDate)"
         
         if item.quantity > 1 {
             label += ", \(item.quantity) unidades"
+        }
+        
+        // ✅ USAR VALIDATORS: Adicionar avisos se houver problemas
+        if !validation.isValid {
+            label += " (requer verificação)"
+        } else if !validation.warnings.isEmpty {
+            label += " (verificar dados)"
         }
         
         return label

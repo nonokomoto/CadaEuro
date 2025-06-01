@@ -1,4 +1,5 @@
 import SwiftUI
+import CadaEuroKit
 
 /// Picker de período premium para navegação temporal nas estatísticas
 public struct PeriodPicker: View {
@@ -161,8 +162,9 @@ public struct PeriodPicker: View {
     // MARK: - Computed Properties
     
     private var formattedPeriod: String {
-        let monthName = monthName(for: tempMonth)
-        return "\(monthName) \(tempYear)"
+        // ✅ USAR DateExtensions: Formatação específica para StatsView
+        let date = dateFromSelection(month: tempMonth, year: tempYear)
+        return date.asMonthYear
     }
     
     private var availableYears: [Int] {
@@ -171,27 +173,29 @@ public struct PeriodPicker: View {
     }
     
     private var isValidDate: Bool {
-        let currentYear = calendar.component(.year, from: currentDate)
-        let currentMonth = calendar.component(.month, from: currentDate)
-        
-        // Não permite datas futuras
-        if tempYear > currentYear {
-            return false
-        }
-        
-        if tempYear == currentYear && tempMonth > currentMonth {
-            return false
-        }
-        
-        return true
+        // ✅ USAR DateExtensions: Validação para estatísticas
+        let date = dateFromSelection(month: tempMonth, year: tempYear)
+        return date.isValidForStats
     }
     
     // MARK: - Methods
     
     private func monthName(for month: Int) -> String {
-        let formatter = DateFormatter()
-        formatter.locale = Locale(identifier: "pt_PT")
-        return formatter.monthSymbols[month - 1]
+        let date = dateFromSelection(month: month, year: tempYear)
+        // ✅ USAR DateExtensions: Formatação consistente com resto da app
+        return date.asMonthYear.components(separatedBy: " ").first ?? "Janeiro"
+    }
+    
+    /// ✅ USAR DateExtensions: Helper para criar Date a partir de mês/ano
+    private func dateFromSelection(month: Int, year: Int) -> Date {
+        let components = DateComponents(year: year, month: month, day: 1)
+        return calendar.date(from: components) ?? currentDate
+    }
+    
+    /// ✅ USAR DateExtensions: Range calculations para filtros
+    private func getDateRange(for month: Int, year: Int) -> (start: Date, end: Date) {
+        let date = dateFromSelection(month: month, year: year)
+        return date.monthRange
     }
     
     private func confirmSelection() {
@@ -290,4 +294,76 @@ extension PeriodPicker {
         }
     }
     .themeProvider(.preview)
+}
+
+// MARK: - StatsView Integration Helpers
+
+/// Extensões específicas para integração com StatsView
+public extension PeriodPicker {
+    
+    /// ✅ USAR DateExtensions: Cria PeriodPicker com data atual
+    ///
+    /// - Returns: PeriodPicker configurado para mês/ano atual
+    /// - Use Case: Inicialização padrão em StatsView
+    static func currentPeriod(
+        isPresented: Binding<Bool>,
+        onConfirm: @escaping (Int, Int) -> Void
+    ) -> PeriodPicker {
+        let now = Date()
+        let calendar = Calendar.current
+        let currentMonth = calendar.component(.month, from: now)
+        let currentYear = calendar.component(.year, from: now)
+        
+        return PeriodPicker(
+            selectedMonth: .constant(currentMonth),
+            selectedYear: .constant(currentYear),
+            isPresented: isPresented,
+            onConfirm: onConfirm
+        )
+    }
+    
+    /// ✅ USAR DateExtensions: Valida se período é adequado para estatísticas
+    ///
+    /// - Parameters:
+    ///   - month: Mês a validar
+    ///   - year: Ano a validar
+    /// - Returns: Bool indicando se período é válido para stats
+    /// - Use Case: Validação em StatsView antes de queries
+    static func isValidPeriodForStats(month: Int, year: Int) -> Bool {
+        let calendar = Calendar.current
+        let components = DateComponents(year: year, month: month, day: 1)
+        guard let date = calendar.date(from: components) else { return false }
+        
+        return date.isValidForStats
+    }
+    
+    /// ✅ USAR DateExtensions: Obtém range de datas para período
+    ///
+    /// - Parameters:
+    ///   - month: Mês selecionado
+    ///   - year: Ano selecionado
+    /// - Returns: Tupla com início e fim do mês
+    /// - Use Case: Filtros de dados em StatsView
+    static func dateRange(for month: Int, year: Int) -> (start: Date, end: Date)? {
+        let calendar = Calendar.current
+        let components = DateComponents(year: year, month: month, day: 1)
+        guard let date = calendar.date(from: components) else { return nil }
+        
+        return date.monthRange
+    }
+    
+    /// ✅ USAR DateExtensions: Formata período para display
+    ///
+    /// - Parameters:
+    ///   - month: Mês a formatar
+    ///   - year: Ano a formatar
+    /// - Returns: String formatada "Janeiro 2025"
+    /// - Use Case: Headers em StatsView
+    static func formatPeriod(month: Int, year: Int) -> String {
+        let calendar = Calendar.current
+        let components = DateComponents(year: year, month: month, day: 1)
+        guard let date = calendar.date(from: components) else { return "Período inválido" }
+        
+        return date.asMonthYear
+    }
 }

@@ -417,7 +417,7 @@ public extension String {
     ///
     /// - Returns: Bool indicando presença de caracteres suspeitos
     /// - Security: Prevenção de injection attacks básicos
-    private var containsDangerousCharacters: Bool {
+    var containsDangerousCharacters: Bool {
         let dangerousPatterns = [
             "<script", "</script>", "javascript:", "eval(",
             "DROP TABLE", "SELECT *", "DELETE FROM", "INSERT INTO",

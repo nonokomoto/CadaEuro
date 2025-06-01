@@ -408,7 +408,7 @@ public struct ScannerOverlay: View {
                     print("📊 Analytics: \(CaptureMethod.scanner.analyticsName) - scan_failed - \(randomError)")
                     handleError(randomError)
                 } else {
-                    // ✅ USAR StringExtensions: Simulação com texto OCR realista
+                    // Mock OCR texts para validação
                     let mockOCRTexts = [
                         "Le1te M1m0sa €1,29",
                         "Pão de F0rma €0,89", 
@@ -419,15 +419,15 @@ public struct ScannerOverlay: View {
                     
                     let rawOCRText = mockOCRTexts.randomElement()!
                     
-                    // ✅ USAR StringExtensions: Limpeza OCR + Parse inteligente
-                    let cleanedText = rawOCRText.cleanOCRText
-                    let (productName, price) = cleanedText.extractProductAndPrice()
+                    // ✅ USAR VALIDATORS: Validação centralizada ao invés de StringExtensions direto
+                    let validation = CadaEuroValidator.validateTextInput(rawOCRText, method: .scanner)
                     
-                    // ✅ USAR StringExtensions: Normalização do nome produto
-                    let normalizedName = productName.normalizedProductName
-                    
-                    // ✅ USAR StringExtensions: Validação antes de retornar
-                    if normalizedName.isValidProductName && (price?.isValidPrice ?? false) {
+                    if validation.isValid {
+                        // ✅ USAR StringExtensions: Apenas para operações básicas
+                        let cleanedText = rawOCRText.cleanOCRText
+                        let (productName, price) = cleanedText.extractProductAndPrice()
+                        let normalizedName = productName.normalizedProductName
+                        
                         print("📊 Analytics: \(CaptureMethod.scanner.analyticsName) - scan_success - \(normalizedName)")
                         scannerState = .success(normalizedName, price)
                         
@@ -435,15 +435,35 @@ public struct ScannerOverlay: View {
                             onItemScanned(normalizedName, price)
                         }
                     } else {
-                        // ✅ Fallback: Se parsing falhar, tenta texto original
-                        let fallbackPrice = cleanedText.extractAllPrices().first
-                        let fallbackName = cleanedText.trimmedAndCleaned
-                        
-                        print("📊 Analytics: \(CaptureMethod.scanner.analyticsName) - scan_partial - \(fallbackName)")
-                        scannerState = .success(fallbackName, fallbackPrice)
-                        
-                        DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) {
-                            onItemScanned(fallbackName, fallbackPrice)
+                        // ✅ USAR VALIDATORS: Tratamento de erro baseado na validação
+                        if let firstError = validation.errors.first {
+                            switch firstError {
+                            case .ocrValidationFailed(let reason, _):
+                                print("📊 Analytics: \(CaptureMethod.scanner.analyticsName) - validation_failed - \(reason)")
+                                handleError(.recognitionFailed)
+                            case .invalidProductName(let reason):
+                                print("📊 Analytics: \(CaptureMethod.scanner.analyticsName) - invalid_product - \(reason)")
+                                handleError(.invalidData)
+                            default:
+                                print("📊 Analytics: \(CaptureMethod.scanner.analyticsName) - unknown_error")
+                                handleError(.recognitionFailed)
+                            }
+                        } else {
+                            // ✅ USAR VALIDATORS: Warnings não-críticos - tentar enviar mesmo assim
+                            if !validation.warnings.isEmpty {
+                                print("⚠️ Warnings: \(validation.warnings.joined(separator: ", "))")
+                            }
+                            
+                            // Fallback: Usar texto original mesmo com warnings
+                            let cleanedText = rawOCRText.cleanOCRText
+                            let (fallbackName, fallbackPrice) = cleanedText.extractProductAndPrice()
+                            
+                            print("📊 Analytics: \(CaptureMethod.scanner.analyticsName) - scan_partial - \(fallbackName)")
+                            scannerState = .success(fallbackName, fallbackPrice)
+                            
+                            DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) {
+                                onItemScanned(fallbackName, fallbackPrice)
+                            }
                         }
                     }
                 }
