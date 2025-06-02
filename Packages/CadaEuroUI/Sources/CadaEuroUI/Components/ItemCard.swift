@@ -86,6 +86,7 @@ public struct ItemCard: View {
     @State private var isPressed = false
     @State private var dragOffset: CGSize = .zero
     @State private var showingDeleteAction = false
+    @State private var isScrollEnabled = true
     
     public init(
         item: ShoppingItem,
@@ -105,36 +106,19 @@ public struct ItemCard: View {
             productIcon
             
             // Nome do produto
-            VStack(alignment: .leading, spacing: themeProvider.theme.spacing.xs) {
-                Text(item.name)
-                    .font(themeProvider.theme.typography.bodyLarge)
-                    .foregroundColor(textColor)
-                    .lineLimit(2)
-                    .multilineTextAlignment(.leading)
-                
-                // Indicador sutil de quantidade (só se > 1)
-                if item.quantity > 1 {
-                    Text("\(item.quantity) unidades")
-                        .font(themeProvider.theme.typography.caption)
-                        .foregroundColor(themeProvider.theme.colors.cadaEuroTextTertiary)
-                }
-            }
+            Text(item.name)
+                .font(themeProvider.theme.typography.bodyLarge)
+                .foregroundColor(textColor)
+                .lineLimit(2)
+                .multilineTextAlignment(.leading)
             
             Spacer()
             
-            // Controlos de quantidade e valor
-            VStack(alignment: .trailing, spacing: themeProvider.theme.spacing.xs) {
-                // Valor total - ✅ USAR DoubleExtensions
-                Text(item.totalPrice.asItemCardPrice)
-                    .font(themeProvider.theme.typography.bodyLarge)
-                    .fontWeight(.semibold)
-                    .foregroundColor(priceColor)
-                
-                // Controlos de quantidade (sempre visíveis)
-                if let onQuantityChange = onQuantityChange {
-                    quantityControl
-                }
-            }
+            // Valor total - ✅ USAR DoubleExtensions
+            Text(item.totalPrice.asItemCardPrice)
+                .font(themeProvider.theme.typography.bodyLarge)
+                .fontWeight(.semibold)
+                .foregroundColor(priceColor)
             
             // Ação de eliminar (se a mostrar)
             if showingDeleteAction {
@@ -151,7 +135,7 @@ public struct ItemCard: View {
         .scaleEffect(scaleEffect)
         .offset(dragOffset)
         .shadow(color: shadowColor, radius: shadowRadius, x: 0, y: 2)
-        .gesture(swipeGesture)
+        .simultaneousGesture(swipeGesture)
         .onLongPressGesture(minimumDuration: 0) { pressing in
             withAnimation(themeProvider.theme.animation.quick) {
                 isPressed = pressing
@@ -194,47 +178,6 @@ public struct ItemCard: View {
     }
     
     @ViewBuilder
-    private var quantityControl: some View {
-        HStack(spacing: themeProvider.theme.spacing.xs) {
-            // Botão diminuir
-            Button(action: { 
-                if item.quantity > 1 {
-                    onQuantityChange?(item.quantity - 1)
-                }
-            }) {
-                Image(systemName: "minus.circle.fill")
-                    .font(.system(size: 20))
-                    .foregroundColor(item.quantity > 1 ? 
-                                   themeProvider.theme.colors.cadaEuroAccent : 
-                                   themeProvider.theme.colors.cadaEuroDisabled)
-            }
-            .buttonStyle(PlainButtonStyle())
-            .disabled(item.quantity <= 1)
-            
-            // Quantidade atual
-            Text("\(item.quantity)")
-                .font(themeProvider.theme.typography.bodyMedium)
-                .fontWeight(.medium)
-                .foregroundColor(themeProvider.theme.colors.cadaEuroTextPrimary)
-                .frame(minWidth: 24)
-            
-            // Botão aumentar
-            Button(action: { onQuantityChange?(item.quantity + 1) }) {
-                Image(systemName: "plus.circle.fill")
-                    .font(.system(size: 20))
-                    .foregroundColor(themeProvider.theme.colors.cadaEuroAccent)
-            }
-            .buttonStyle(PlainButtonStyle())
-        }
-        .padding(.horizontal, themeProvider.theme.spacing.sm)
-        .padding(.vertical, 4)
-        .background(
-            RoundedRectangle(cornerRadius: 8)
-                .fill(themeProvider.theme.colors.cadaEuroComponentBackground.opacity(0.3))
-        )
-    }
-    
-    @ViewBuilder
     private var deleteButton: some View {
         Button(action: { onDelete?() }) {
             Image(systemName: "trash.fill")
@@ -245,7 +188,8 @@ public struct ItemCard: View {
                 .cornerRadius(8)
         }
         .buttonStyle(PlainButtonStyle())
-        .transition(.scale.combined(with: .opacity))
+        // Usar uma transição mais simples para evitar problemas de animação
+        .transition(.opacity)
     }
     
     // MARK: - Computed Properties
@@ -333,35 +277,59 @@ public struct ItemCard: View {
     // MARK: - Gestures (swipe para delete mantido)
     
     private var swipeGesture: some Gesture {
-        DragGesture()
+        DragGesture(minimumDistance: 15, coordinateSpace: .local)
             .onChanged { value in
                 guard onDelete != nil else { return }
                 
-                let translation = value.translation.width
-                if translation < 0 {
-                    dragOffset = CGSize(width: max(translation, -80), height: 0)
-                    
-                    if translation < -40 && !showingDeleteAction {
-                        withAnimation(themeProvider.theme.animation.spring) {
-                            showingDeleteAction = true
+                // Determinar se o gesto é principalmente horizontal
+                let horizontalAmount = abs(value.translation.width)
+                let verticalAmount = abs(value.translation.height)
+                
+                // Se o gesto for mais horizontal que vertical, tratar como swipe
+                if horizontalAmount > verticalAmount {
+                    isScrollEnabled = false
+                    let translation = value.translation.width
+                    if translation < 0 {
+                        // Atualizar a posição sem animação durante o arrasto
+                        dragOffset = CGSize(width: max(translation, -80), height: 0)
+                        
+                        if translation < -40 && !showingDeleteAction {
+                            // Usar animação mais simples
+                            withAnimation(.easeOut(duration: 0.2)) {
+                                showingDeleteAction = true
+                            }
                         }
                     }
+                } else {
+                    // Se for mais vertical, permitir scroll
+                    isScrollEnabled = true
                 }
             }
             .onEnded { value in
-                let translation = value.translation.width
+                // Verificar se o gesto foi principalmente horizontal
+                let horizontalAmount = abs(value.translation.width)
+                let verticalAmount = abs(value.translation.height)
                 
-                if translation < -60 {
-                    withAnimation(themeProvider.theme.animation.spring) {
-                        dragOffset = CGSize(width: -80, height: 0)
-                        showingDeleteAction = true
-                    }
-                } else {
-                    withAnimation(themeProvider.theme.animation.spring) {
-                        dragOffset = .zero
-                        showingDeleteAction = false
+                if horizontalAmount > verticalAmount {
+                    let translation = value.translation.width
+                    
+                    if translation < -60 {
+                        // Usar animação mais simples e previsível
+                        withAnimation(.easeOut(duration: 0.2)) {
+                            dragOffset = CGSize(width: -80, height: 0)
+                            showingDeleteAction = true
+                        }
+                    } else {
+                        // Usar animação mais simples e previsível
+                        withAnimation(.easeOut(duration: 0.2)) {
+                            dragOffset = .zero
+                            showingDeleteAction = false
+                        }
                     }
                 }
+                
+                // Reativar scroll em qualquer caso
+                isScrollEnabled = true
             }
     }
     

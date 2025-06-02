@@ -37,6 +37,7 @@ public struct ShoppingListView: View {
     
     // MARK: - Scanner Confirmation State
     @State private var scannedProductData: ProductData?
+    @State private var voiceProcessedData: ProductData?
     
     public init() {}
     
@@ -54,14 +55,27 @@ public struct ShoppingListView: View {
                 
                 // Conteúdo principal
                 mainContent
+                
+                // ✅ Voice Recorder Overlay contextual no local do botão de voz
+                // Animação estilo Apple onde o overlay substitui o botão suavemente
+                if showingVoiceRecorder {
+                    voiceRecorderOverlayPositioned
+                }
+            }
+            .onPreferenceChange(CaptureButtonPositionKey.self) { positions in
+                if let captureButtonsPosition = positions["capture_buttons_container"] {
+                    captureButtonsFrame = captureButtonsPosition
+                }
             }
             .navigationTitle("")
             .toolbar {
+                #if os(iOS)
                 ToolbarItem(placement: .navigationBarLeading) {
                     Image(systemName: "cart")
                         .font(.system(size: 16, weight: .semibold))
                         .foregroundColor(themeProvider.theme.colors.cadaEuroTextPrimary)
                 }
+                #endif
             }
             #if os(iOS)
             .navigationBarTitleDisplayMode(.inline)
@@ -109,7 +123,7 @@ public struct ShoppingListView: View {
             
             // 4. Lista/empty state (conteúdo principal) - Flex space
             contentSection
-                .frame(minHeight: 200) // Altura mínima para conteúdo
+                .frame(maxWidth: .infinity, maxHeight: .infinity) // Usar todo o espaço disponível
             
             // 5. Botões de captura (em baixo) - PRIORIDADE MÉDIA-ALTA
             captureMethodsSection
@@ -156,6 +170,7 @@ public struct ShoppingListView: View {
             
             // ✅ Componente CaptureMethodSelector finalizado - AUMENTADO para maior destaque
             CaptureMethodSelector(
+                isVoiceButtonHidden: $showingVoiceRecorder,
                 onMethodSelected: { method in
                     CadaEuroLogger.ui("Capture method selected", component: "CaptureMethodSelector", metadata: [
                         "method": method.analyticsName,
@@ -164,48 +179,28 @@ public struct ShoppingListView: View {
                     
                     selectedCaptureMethod = method
                     handleCaptureMethodSelection(method)
+                },
+                onVoiceLongPressStart: {
+                    CadaEuroLogger.ui("Voice long press started", component: "CaptureMethodSelector", metadata: [
+                        "trigger": "long_press_start"
+                    ])
+                    showingVoiceRecorder = true
+                },
+                onVoiceLongPressEnd: {
+                    CadaEuroLogger.ui("Voice long press ended", component: "CaptureMethodSelector", metadata: [
+                        "trigger": "long_press_end"
+                    ])
+                    // ✅ CORRIGIDO: NÃO fechar o overlay automaticamente - deixar o overlay gerenciar a gravação
+                    // O overlay permanece aberto para o usuário decidir cancelar ou completar a gravação
                 }
             )
             .scaleEffect(1.15) // Aumentar 15% para maior destaque
             .padding(.vertical, themeProvider.theme.spacing.sm) // Reduzir espaço vertical
-            
-            // Voice Recorder View (inline quando selecionado)
-            if selectedCaptureMethod == .voice || showingVoiceRecorder {
-                voiceRecorderSection
-                    .padding(.top, themeProvider.theme.spacing.sm) // Menos espaçamento
-            }
         }
         .padding(.horizontal, themeProvider.theme.spacing.xl) // Manter padding horizontal
         .padding(.top, themeProvider.theme.spacing.md) // Apenas padding superior
         .padding(.bottom, themeProvider.theme.spacing.sm) // Padding inferior mínimo
         // ✅ REMOVIDO: background cinzento para eliminar campo visual extra
-    }
-    
-    // MARK: - Voice Recorder Section
-    
-    @ViewBuilder
-    private var voiceRecorderSection: some View {
-        // ✅ Componente VoiceRecorderView finalizado
-        VoiceRecorderView(
-            onTranscriptionComplete: { transcription in
-                CadaEuroLogger.voice("Voice transcription received", transcription: transcription, metadata: [
-                    "length": String(transcription.count),
-                    "method": "voice_capture"
-                ])
-                viewModel.processVoiceInput(transcription)
-                showingVoiceRecorder = false
-            },
-            onError: { error in
-                CadaEuroLogger.error("Voice recording failed", error: error, category: .voice)
-                viewModel.handleError(error)
-                showingVoiceRecorder = false
-            }
-        )
-        .transition(.asymmetric(
-            insertion: .scale.combined(with: .opacity),
-            removal: .scale.combined(with: .opacity)
-        ))
-        .animation(themeProvider.theme.animation.spring, value: showingVoiceRecorder)
     }
     
     // MARK: - Content Section
@@ -241,7 +236,7 @@ public struct ShoppingListView: View {
     private var itemsListSection: some View {
         ScrollView {
             LazyVStack(spacing: themeProvider.theme.spacing.md) {
-                ForEach(viewModel.items) { item in
+                ForEach(viewModel.items.sorted { $0.dateAdded > $1.dateAdded }) { item in
                     // ✅ Componente ItemCard finalizado
                     ItemCard(
                         item: ShoppingItem(
@@ -303,14 +298,15 @@ public struct ShoppingListView: View {
     @ViewBuilder
     private var manualInputSheet: some View {
         NavigationStack {
-            // ✅ Componente ManualInputForm finalizado - com suporte a dados do scanner
+            // ✅ Componente ManualInputForm finalizado - com suporte a dados do scanner e voz
             ManualInputForm(
-                initialData: scannedProductData,
+                initialData: voiceProcessedData ?? scannedProductData,
                 onAdd: { item in
                     CadaEuroLogger.ui("Item added via manual input", component: "ManualInputForm", metadata: [
                         "item_name": item.name,
                         "item_price": String(item.price),
-                        "is_from_scanner": scannedProductData != nil ? "true" : "false"
+                        "is_from_scanner": scannedProductData != nil ? "true" : "false",
+                        "is_from_voice": voiceProcessedData != nil ? "true" : "false"
                     ])
                     let shoppingItem = ShoppingListItem(
                         name: item.name, 
@@ -320,11 +316,13 @@ public struct ShoppingListView: View {
                     viewModel.addItem(shoppingItem)
                     showingManualInput = false
                     scannedProductData = nil // Limpar dados do scanner
+                    voiceProcessedData = nil // Limpar dados da voz
                 },
                 onCancel: {
                     CadaEuroLogger.ui("Manual input cancelled", component: "ManualInputForm")
                     showingManualInput = false
                     scannedProductData = nil // Limpar dados do scanner
+                    voiceProcessedData = nil // Limpar dados da voz
                 }
             )
             .navigationTitle("Adicionar Produto")
@@ -482,6 +480,150 @@ public struct ShoppingListView: View {
             
         case .settings:
             showingSettings = true
+        }
+    }
+    
+    @ViewBuilder
+    private var voiceRecorderOverlay: some View {
+        VoiceRecorderOverlay(
+            onTranscriptionComplete: { transcription in
+                CadaEuroLogger.voice("Voice overlay transcription complete", transcription: transcription, metadata: [
+                    "length": String(transcription.count),
+                    "source": "overlay"
+                ])
+                
+                // Processar transcrição com LLM
+                Task {
+                    await processVoiceTranscription(transcription)
+                }
+            },
+            onCancel: {
+                CadaEuroLogger.ui("Voice overlay cancelled", component: "VoiceRecorderOverlay")
+                showingVoiceRecorder = false
+                voiceProcessedData = nil
+            },
+            onError: { error in
+                CadaEuroLogger.error("Voice overlay error", error: error, category: .voice)
+                showingVoiceRecorder = false
+                viewModel.handleError(error)
+            },
+            onFallbackToManual: {
+                CadaEuroLogger.ui("Voice overlay fallback to manual", component: "VoiceRecorderOverlay")
+                showingVoiceRecorder = false
+                voiceProcessedData = nil
+                showingManualInput = true
+            }
+        )
+    }
+    
+    // MARK: - Voice Recorder Overlay Positioned
+    
+    @State private var captureButtonsFrame: CGRect = .zero
+    
+    @ViewBuilder
+    private var voiceRecorderOverlayPositioned: some View {
+        if !captureButtonsFrame.isEmpty {
+            VoiceRecorderOverlay(
+                onTranscriptionComplete: { transcription in
+                    CadaEuroLogger.voice("Voice overlay transcription complete", transcription: transcription, metadata: [
+                        "length": String(transcription.count),
+                        "source": "overlay_positioned"
+                    ])
+                    
+                    // Processar transcrição com LLM
+                    Task {
+                        await processVoiceTranscription(transcription)
+                    }
+                },
+                onCancel: {
+                    CadaEuroLogger.ui("Voice overlay cancelled", component: "VoiceRecorderOverlay")
+                    withAnimation(.spring(response: 0.6, dampingFraction: 0.8)) {
+                        showingVoiceRecorder = false
+                    }
+                    voiceProcessedData = nil
+                },
+                onError: { error in
+                    CadaEuroLogger.error("Voice overlay error", error: error, category: .voice)
+                    withAnimation(.spring(response: 0.6, dampingFraction: 0.8)) {
+                        showingVoiceRecorder = false
+                    }
+                    viewModel.handleError(error)
+                },
+                onFallbackToManual: {
+                    CadaEuroLogger.ui("Voice overlay fallback to manual", component: "VoiceRecorderOverlay")
+                    withAnimation(.spring(response: 0.6, dampingFraction: 0.8)) {
+                        showingVoiceRecorder = false
+                    }
+                    voiceProcessedData = nil
+                    showingManualInput = true
+                }
+            )
+            .position(
+                x: captureButtonsFrame.midX,
+                y: captureButtonsFrame.midY - 40
+            )
+            .zIndex(999) // Garantir que está acima de tudo
+        }
+    }
+
+    // MARK: - Voice Processing
+    
+    @MainActor
+    private func processVoiceTranscription(_ transcription: String) async {
+        // Extrair produto e preço usando StringExtensions
+        let (productName, extractedPrice) = transcription.extractProductAndPrice()
+        
+        guard !productName.isEmpty else {
+            CadaEuroLogger.warning("Voice processing failed - empty product name", metadata: [
+                "transcription": transcription
+            ], category: .voice)
+            
+            // Fechar overlay e mostrar erro
+            showingVoiceRecorder = false
+            viewModel.handleError(VoiceInputError.unableToExtractProduct)
+            return
+        }
+        
+        let price = extractedPrice ?? 0.0
+        
+        // Validar dados usando CadaEuroValidator
+        let validation = CadaEuroValidator.validateProduct(
+            name: productName,
+            price: price,
+            captureMethod: .voice,
+            confidence: transcription.textConfidenceScore
+        )
+        
+        if validation.isValid {
+            // Criar ProductData para pré-preenchimento do ManualInputForm
+            voiceProcessedData = ProductData(
+                name: productName.normalizedProductName,
+                price: price,
+                captureMethod: .voice
+            )
+            
+            CadaEuroLogger.voice("Voice processing successful", transcription: transcription, metadata: [
+                "extracted_product": productName,
+                "extracted_price": String(price),
+                "validation_status": "success"
+            ])
+            
+            // Fechar overlay e abrir ManualInputForm com dados pré-preenchidos
+            showingVoiceRecorder = false
+            showingManualInput = true
+        } else {
+            CadaEuroLogger.validation("Voice input validation failed", isValid: false, field: "voice_transcription", metadata: [
+                "errors": validation.errors.map { $0.localizedDescription }.joined(separator: ", "),
+                "warnings": validation.warnings.joined(separator: ", ")
+            ])
+            
+            // Fechar overlay e mostrar erro
+            showingVoiceRecorder = false
+            if let firstError = validation.errors.first {
+                viewModel.handleError(firstError)
+            } else {
+                viewModel.handleError(VoiceInputError.lowConfidenceScore)
+            }
         }
     }
 }

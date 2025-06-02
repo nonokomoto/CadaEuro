@@ -9,20 +9,28 @@ public struct CaptureButton: View {
     private let isActive: Bool
     private let action: () -> Void
     
-    private let onLongPress: (() -> Void)?  
+    private let onLongPressStart: (() -> Void)?  
+    private let onLongPressEnd: (() -> Void)?  
     
     @State private var isPressed = false
+    
+    // ✅ Estado para controlar visibilidade durante overlay
+    @Binding private var isHidden: Bool
     
     public init(
         method: CaptureMethod,
         isActive: Bool = false,
+        isHidden: Binding<Bool> = .constant(false),
         action: @escaping () -> Void,
-        onLongPress: (() -> Void)? = nil  // ✅ Novo parâmetro opcional
+        onLongPressStart: (() -> Void)? = nil,
+        onLongPressEnd: (() -> Void)? = nil
     ) {
         self.method = method
         self.isActive = isActive
+        self._isHidden = isHidden
         self.action = action
-        self.onLongPress = onLongPress
+        self.onLongPressStart = onLongPressStart
+        self.onLongPressEnd = onLongPressEnd
     }
     
     public var body: some View {
@@ -48,15 +56,20 @@ public struct CaptureButton: View {
             }
         }
         .buttonStyle(PlainButtonStyle())
+        .scaleEffect(isHidden ? 0.1 : 1.0)
+        .opacity(isHidden ? 0.0 : 1.0)
+        .animation(.spring(response: 0.6, dampingFraction: 0.8), value: isHidden)
         .animation(themeProvider.theme.animation.quick, value: isPressed)
         .animation(themeProvider.theme.animation.spring, value: isActive)
         // ✅ Long press APENAS para microfone
         .if(method == .voice) { view in
             view.onLongPressGesture(minimumDuration: 0) { pressing in
                 isPressed = pressing
-                // ✅ Trigger long press callback apenas para voz
+                // ✅ Trigger callbacks de início e fim do long press
                 if pressing {
-                    onLongPress?()
+                    onLongPressStart?()
+                } else {
+                    onLongPressEnd?()
                 }
             } perform: {}
         }
@@ -165,11 +178,19 @@ private extension View {
 
 #Preview("Capture Button with Long Press") {
     VStack(spacing: 24) {
-        CaptureButton(method: .voice, isActive: true) {
-            print("Voice tap")
-        } onLongPress: {
-            print("Voice long press - start recording") // ✅ Integração
-        }
+        CaptureButton(
+            method: .voice, 
+            isActive: true,
+            action: {
+                print("Voice tap")
+            },
+            onLongPressStart: {
+                print("Voice long press started")
+            },
+            onLongPressEnd: {
+                print("Voice long press ended")
+            }
+        )
         
     }
     .padding()

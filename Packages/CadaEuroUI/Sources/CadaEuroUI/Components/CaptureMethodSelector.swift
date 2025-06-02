@@ -6,12 +6,25 @@ public struct CaptureMethodSelector: View {
     @Environment(\.themeProvider) private var themeProvider
     
     private let onMethodSelected: (CaptureMethod) -> Void
+    private let onVoiceLongPressStart: (() -> Void)?
+    private let onVoiceLongPressEnd: (() -> Void)?
     
     @State private var currentPage = 0 // 0=scanner+voice, 1=manual
     @State private var dragOffset: CGFloat = 0
     
-    public init(onMethodSelected: @escaping (CaptureMethod) -> Void) {
+    // ✅ Estado para controlar visibilidade do botão de voz
+    @Binding private var isVoiceButtonHidden: Bool
+    
+    public init(
+        isVoiceButtonHidden: Binding<Bool> = .constant(false),
+        onMethodSelected: @escaping (CaptureMethod) -> Void, 
+        onVoiceLongPressStart: (() -> Void)? = nil,
+        onVoiceLongPressEnd: (() -> Void)? = nil
+    ) {
+        self._isVoiceButtonHidden = isVoiceButtonHidden
         self.onMethodSelected = onMethodSelected
+        self.onVoiceLongPressStart = onVoiceLongPressStart
+        self.onVoiceLongPressEnd = onVoiceLongPressEnd
     }
     
     public var body: some View {
@@ -20,14 +33,22 @@ public struct CaptureMethodSelector: View {
             TabView(selection: $currentPage) {
                 // Página 1: Scanner + Voice
                 HStack(spacing: themeProvider.theme.spacing.xxl) {
-                    CaptureButton(method: .scanner) {
+                    CaptureButton(
+                        method: .scanner,
+                        isHidden: $isVoiceButtonHidden
+                    ) {
                         handleMethodSelection(.scanner)
                     }
                     
-                    CaptureButton(method: .voice) {
-                        handleMethodSelection(.voice)
-                    }
+                    CaptureButton(
+                        method: .voice,
+                        isHidden: $isVoiceButtonHidden,
+                        action: { handleMethodSelection(.voice) },
+                        onLongPressStart: onVoiceLongPressStart,
+                        onLongPressEnd: onVoiceLongPressEnd
+                    )
                 }
+                .captureButtonPosition(id: "capture_buttons_container")
                 .frame(maxWidth: .infinity)
                 .tag(0)
                 
