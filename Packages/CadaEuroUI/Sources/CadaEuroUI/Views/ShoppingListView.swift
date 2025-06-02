@@ -274,9 +274,6 @@ public struct ShoppingListView: View {
         ToolbarItem(placement: .navigationBarTrailing) {
             // ✅ Componente MenuButton finalizado
             MenuButton { action in
-                CadaEuroLogger.ui("Menu action selected", component: "MenuButton", metadata: [
-                    "action": action.title.lowercased().replacingOccurrences(of: " ", with: "_")
-                ])
                 handleMenuAction(action)
             }
         }
@@ -284,9 +281,6 @@ public struct ShoppingListView: View {
         ToolbarItem(placement: .primaryAction) {
             // ✅ Componente MenuButton finalizado
             MenuButton { action in
-                CadaEuroLogger.ui("Menu action selected", component: "MenuButton", metadata: [
-                    "action": action.title.lowercased().replacingOccurrences(of: " ", with: "_")
-                ])
                 handleMenuAction(action)
             }
         }

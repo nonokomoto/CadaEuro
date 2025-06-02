@@ -1,4 +1,5 @@
 import SwiftUI
+import CadaEuroKit
 
 /// Ações disponíveis no menu principal
 public enum MenuAction: CaseIterable, Sendable {
@@ -48,9 +49,6 @@ public struct MenuButton: View {
             menuContent
         } label: {
             menuLabel
-        } primaryAction: {
-            // ✅ SwiftUI-Only: Sem UIImpactFeedbackGenerator
-            // Feedback háptico será adicionado via SensoryFeedback quando disponível
         }
         .menuStyle(.borderlessButton)
         .accessibilityLabel("Menu de opções")
@@ -61,15 +59,12 @@ public struct MenuButton: View {
     
     @ViewBuilder
     private var menuLabel: some View {
-        Button(action: {}) {
-            Image(systemName: "ellipsis")
-                .font(.title3)
-                .fontWeight(.medium)
-                .foregroundColor(themeProvider.theme.colors.cadaEuroTextSecondary)
-                .frame(width: 44, height: 44) // Touch target mínimo
-                .contentShape(Rectangle())
-        }
-        .buttonStyle(MenuButtonStyle(themeProvider: themeProvider))
+        Image(systemName: "ellipsis")
+            .font(.title3)
+            .fontWeight(.medium)
+            .foregroundColor(themeProvider.theme.colors.cadaEuroTextSecondary)
+            .frame(width: 44, height: 44) // Touch target mínimo
+            .contentShape(Rectangle())
     }
     
     @ViewBuilder
