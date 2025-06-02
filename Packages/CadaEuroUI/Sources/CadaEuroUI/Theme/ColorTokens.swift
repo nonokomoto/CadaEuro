@@ -53,8 +53,8 @@ public struct ColorTokens {
         switch colorScheme {
         case .dark:
             // Dark Mode - Elegante, Acessível e Moderno
-            self.cadaEuroBackground = Color(hex: "#0A0A0B") // Preto suave, mais elegante que puro
-            self.cadaEuroComponentBackground = Color(hex: "#1A1A1C") // Cinza muito escuro, sofisticado
+            self.cadaEuroBackground = Color(hex: "#1C1C1E") // Preto suave, mais elegante que puro
+            self.cadaEuroComponentBackground = Color(hex: "#2C2C2E") // Cinza muito escuro, sofisticado
             self.cadaEuroTextPrimary = Color(hex: "#F5F5F7") // Branco suave, menos agressivo
             self.cadaEuroTextSecondary = Color(hex: "#98989D") // Cinza médio, elegante
             self.cadaEuroTextTertiary = Color(hex: "#6D6D70") // Cinza sutil
@@ -69,8 +69,8 @@ public struct ColorTokens {
             
         default:
             // Light Mode - Minimalista, Elegante e Sofisticado
-            self.cadaEuroBackground = Color(hex: "#FAFAFA") // Branco quente, mais suave
-            self.cadaEuroComponentBackground = Color(hex: "#F8F9FA") // Cinza muito claro, elegante
+            self.cadaEuroBackground = Color(hex: "#F5F5F7") // Branco quente, mais suave
+            self.cadaEuroComponentBackground = Color(hex: "#FCFCFC") // Cinza muito claro, elegante
             self.cadaEuroTextPrimary = Color(hex: "#1A1A1A") // Preto suave, não puro
             self.cadaEuroTextSecondary = Color(hex: "#6B7280") // Cinza moderno, equilibrado
             self.cadaEuroTextTertiary = Color(hex: "#9CA3AF") // Cinza claro, sutil

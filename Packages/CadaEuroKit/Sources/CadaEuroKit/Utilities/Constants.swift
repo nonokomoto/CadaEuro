@@ -29,7 +29,7 @@ public enum AppConstants {
     ///
     /// - Returns: String com identificador único
     /// - Important: Deve corresponder exatamente ao PRODUCT_BUNDLE_IDENTIFIER do Xcode
-    public static let bundleIdentifier = "NeyCarvalho.CadaEuro"
+    public static let bundleIdentifier = "neyc.CadaEuro"
     
     /// Versão mínima do iOS suportada pela aplicação
     ///

@@ -112,11 +112,6 @@ public struct ItemCard: View {
                     .lineLimit(2)
                     .multilineTextAlignment(.leading)
                 
-                // ✅ USAR DateExtensions: Timestamp relativo do produto
-                Text(item.dateAdded.asItemCardDate)
-                    .font(themeProvider.theme.typography.caption)
-                    .foregroundColor(themeProvider.theme.colors.cadaEuroTextTertiary)
-                
                 // Indicador sutil de quantidade (só se > 1)
                 if item.quantity > 1 {
                     Text("\(item.quantity) unidades")
@@ -194,7 +189,7 @@ public struct ItemCard: View {
             
             Image(systemName: productSystemImage)
                 .font(.system(size: 18, weight: .medium))
-                .foregroundColor(themeProvider.theme.colors.cadaEuroAccent)
+                .foregroundColor(themeProvider.theme.colors.cadaEuroTextPrimary)
         }
     }
     

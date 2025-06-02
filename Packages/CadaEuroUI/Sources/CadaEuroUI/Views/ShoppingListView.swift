@@ -115,7 +115,6 @@ public struct ShoppingListView: View {
             captureMethodsSection
         }
     }
-    
     // MARK: - Total Section
     
     @ViewBuilder
@@ -520,9 +519,11 @@ public final class ShoppingListViewModel: ObservableObject {
             "current_items_count": String(items.count)
         ], category: .userInteraction)
         
-        withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
+        var transaction = Transaction(animation: .spring(response: 0.3, dampingFraction: 0.7))
+        transaction.disablesAnimations = false
+        withTransaction(transaction) {
             items.append(item)
-        }
+        }   
         
         // TODO: Fase 5 - Persistir no SwiftData
         // await persistenceManager.save(item)
