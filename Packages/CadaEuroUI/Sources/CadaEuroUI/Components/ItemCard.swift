@@ -134,7 +134,12 @@ public struct ItemCard: View {
         )
         .scaleEffect(scaleEffect)
         .offset(dragOffset)
-        .shadow(color: shadowColor, radius: shadowRadius, x: 0, y: 2)
+        // .shadow(
+        //     color: shadowColor,
+        //     radius: shadowRadius,
+        //     x: 0,
+        //     y: shadowOffset
+        // )
         .simultaneousGesture(swipeGesture)
         .onLongPressGesture(minimumDuration: 0) { pressing in
             withAnimation(themeProvider.theme.animation.quick) {
@@ -231,7 +236,7 @@ public struct ItemCard: View {
     private var borderColor: Color {
         switch state {
         case .normal:
-            return themeProvider.theme.colors.cadaEuroSeparator.opacity(0.2)
+            return Color.clear
         case .editing:
             return themeProvider.theme.colors.cadaEuroAccent
         case .deleting:
@@ -242,7 +247,7 @@ public struct ItemCard: View {
     }
     
     private var borderWidth: CGFloat {
-        state == .normal ? 0.5 : 1.0
+        state == .normal ? 0 : 1.0
     }
     
     private var textColor: Color {
@@ -267,11 +272,21 @@ public struct ItemCard: View {
     private var shadowColor: Color {
         state == .selected ? 
         themeProvider.theme.colors.cadaEuroAccent.opacity(0.2) : 
-        themeProvider.theme.colors.cadaEuroTextTertiary.opacity(0.05)
+        themeProvider.theme.colors.cadaEuroTextTertiary.opacity(0.15)
     }
     
     private var shadowRadius: CGFloat {
-        state == .selected ? 4 : 1
+        if isPressed {
+            return state == .selected ? 2 : 2
+        }
+        return state == .selected ? 4 : 6
+    }
+    
+    private var shadowOffset: CGFloat {
+        if isPressed {
+            return state == .selected ? 1 : 1
+        }
+        return state == .selected ? 2 : 3
     }
     
     // MARK: - Gestures (swipe para delete mantido)

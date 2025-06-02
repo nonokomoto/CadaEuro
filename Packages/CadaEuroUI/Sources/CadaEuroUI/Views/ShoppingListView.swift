@@ -370,29 +370,8 @@ public struct ShoppingListView: View {
 
     @ViewBuilder
     private var savedListsView: some View {
-        NavigationStack {
-            // TODO: Implementar SavedListsView na próxima iteração
-            Text("Listas Guardadas")
-                .navigationTitle("Listas Guardadas")
-                #if os(iOS)
-                .navigationBarTitleDisplayMode(.large)
-                #endif
-                .toolbar {
-                    #if os(iOS)
-                    ToolbarItem(placement: .navigationBarLeading) {
-                        Button("Fechar") {
-                            showingSavedLists = false
-                        }
-                    }
-                    #else
-                    ToolbarItem(placement: .cancellationAction) {
-                        Button("Fechar") {
-                            showingSavedLists = false
-                        }
-                    }
-                    #endif
-                }
-        }
+        // ✅ Componente SavedListsView implementado - Fase 3A Foundation
+        SavedListsView()
     }
     
     @ViewBuilder

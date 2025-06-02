@@ -64,13 +64,13 @@ public struct ListCard: View {
         cardContent
             .background(cardBackground)
             .cornerRadius(themeProvider.theme.border.cardRadius)
-            .shadow(
-                color: shadowColor,
-                radius: cardState == .pressed ? 2 : 6,
-                x: 0,
-                y: cardState == .pressed ? 1 : 3
-            )
-            .scaleEffect(cardState == .pressed ? 0.98 : 1.0)
+            // .shadow(
+            //     color: shadowColor,
+            //     radius: shadowRadius,
+            //     x: 0,
+            //     y: shadowOffset
+            // )
+            .scaleEffect(cardState == .pressed ? themeProvider.theme.animation.pressedScale : 1.0)
             .animation(themeProvider.theme.animation.quick, value: cardState)
             .contextMenu {
                 contextMenuContent
@@ -211,20 +211,20 @@ public struct ListCard: View {
     
     // MARK: - Computed Properties
     
-    private var cardBackground: some View {
-        RoundedRectangle(cornerRadius: themeProvider.theme.border.cardRadius)
-            .fill(themeProvider.theme.colors.cadaEuroComponentBackground)
-            .overlay(
-                RoundedRectangle(cornerRadius: themeProvider.theme.border.cardRadius)
-                    .stroke(
-                        themeProvider.theme.colors.cadaEuroSeparator,
-                        lineWidth: 0.5
-                    )
-            )
+    private var cardBackground: Color {
+        themeProvider.theme.colors.cadaEuroComponentBackground
     }
     
     private var shadowColor: Color {
         themeProvider.theme.colors.cadaEuroTextTertiary.opacity(0.15)
+    }
+    
+    private var shadowRadius: CGFloat {
+        cardState == .pressed ? 2 : 6
+    }
+    
+    private var shadowOffset: CGFloat {
+        cardState == .pressed ? 1 : 3
     }
     
     private var formattedDate: String {
