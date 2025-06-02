@@ -28,6 +28,9 @@ let package = Package(
             dependencies: [
                 .product(name: "CadaEuroDomain", package: "CadaEuroDomain"),
                 .product(name: "CadaEuroKit", package: "CadaEuroKit"),
+            ],
+            resources: [
+                .process("Resources")
             ]),
         .testTarget(
             name: "CadaEuroUITests",

@@ -7,6 +7,7 @@ public enum VoiceRecorderError: LocalizedError, Sendable, Equatable {
     case recognitionNotAvailable
     case processingFailed
     case networkUnavailable
+    case recordingTooShort
     
     public var errorDescription: String? {
         switch self {
@@ -20,6 +21,8 @@ public enum VoiceRecorderError: LocalizedError, Sendable, Equatable {
             return "Falha ao processar o áudio"
         case .networkUnavailable: 
             return "Sem ligação à internet"
+        case .recordingTooShort:
+            return "Gravação muito curta (mínimo 1 segundo)"
         }
     }
     
@@ -31,6 +34,7 @@ public enum VoiceRecorderError: LocalizedError, Sendable, Equatable {
         case .recognitionNotAvailable: return "recognition_not_available"
         case .processingFailed: return "processing_failed"
         case .networkUnavailable: return "network_unavailable"
+        case .recordingTooShort: return "recording_too_short"
         }
     }
     
@@ -42,6 +46,7 @@ public enum VoiceRecorderError: LocalizedError, Sendable, Equatable {
         case "recognition_not_available": return .recognitionNotAvailable
         case "processing_failed": return .processingFailed
         case "network_unavailable": return .networkUnavailable
+        case "recording_too_short": return .recordingTooShort
         default: return nil
         }
     }

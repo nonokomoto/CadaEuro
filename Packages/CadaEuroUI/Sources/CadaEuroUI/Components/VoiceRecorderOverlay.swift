@@ -1,5 +1,6 @@
 import SwiftUI
 import CadaEuroKit
+import CadaEuroKit
 
 /// Modal pequeno de gravação de voz contextual, estilo WhatsApp
 /// Aparece próximo ao botão que o triggerou, 100% SwiftUI
@@ -49,9 +50,13 @@ public struct VoiceRecorderOverlay: View {
             } else if recorderState == .processing {
                 // Durante processamento: spinner + texto
                 processingContentView
-            } else if case .error(let error) = recorderState {
+            } else if recorderState == .error {
                 // Em caso de erro: ícone de erro + mensagem
-                errorContentView(error)
+                if let error = currentError {
+                    errorContentView(error)
+                } else {
+                    errorContentView(VoiceRecorderError.recordingFailed)
+                }
             } else {
                 // Estado inicial: instruções
                 initialContentView

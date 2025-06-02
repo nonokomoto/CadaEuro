@@ -400,7 +400,7 @@ public extension Collection where Element == ShoppingList {
 }
 
 #Preview("List Card Editing") {
-    @State var cardState: ListCardState = .editing
+    @Previewable @State var cardState: ListCardState = .editing
     
     return ListCard(
         shoppingList: ShoppingList.sampleLists[0],
