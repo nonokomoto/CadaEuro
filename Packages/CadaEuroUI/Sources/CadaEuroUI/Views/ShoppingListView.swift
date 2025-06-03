@@ -376,29 +376,8 @@ public struct ShoppingListView: View {
     
     @ViewBuilder
     private var statsView: some View {
-        NavigationStack {
-            // TODO: Implementar StatsView na próxima iteração
-            Text("Estatísticas")
-                .navigationTitle("Estatísticas")
-                #if os(iOS)
-                .navigationBarTitleDisplayMode(.large)
-                #endif
-                .toolbar {
-                    #if os(iOS)
-                    ToolbarItem(placement: .navigationBarLeading) {
-                        Button("Fechar") {
-                            showingStats = false
-                        }
-                    }
-                    #else
-                    ToolbarItem(placement: .cancellationAction) {
-                        Button("Fechar") {
-                            showingStats = false
-                        }
-                    }
-                    #endif
-                }
-        }
+        // ✅ Componente StatsView implementado - Fase 3A Foundation
+        StatsView()
     }
     
     @ViewBuilder
