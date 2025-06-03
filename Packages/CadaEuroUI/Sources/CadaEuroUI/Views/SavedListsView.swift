@@ -127,10 +127,7 @@ public struct SavedListsView: View {
         }
         .padding(.horizontal, themeProvider.theme.spacing.lg)
         .padding(.vertical, themeProvider.theme.spacing.sm)
-        .background(
-            themeProvider.theme.colors.cadaEuroBackground.opacity(0.9)
-                .background(.ultraThinMaterial)
-        )
+        
     }
     
     // MARK: - Lists Section Content

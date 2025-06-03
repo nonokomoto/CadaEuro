@@ -382,29 +382,8 @@ public struct ShoppingListView: View {
     
     @ViewBuilder
     private var settingsView: some View {
-        NavigationStack {
-            // TODO: Implementar SettingsView na próxima iteração
-            Text("Definições")
-                .navigationTitle("Definições")
-                #if os(iOS)
-                .navigationBarTitleDisplayMode(.large)
-                #endif
-                .toolbar {
-                    #if os(iOS)
-                    ToolbarItem(placement: .navigationBarLeading) {
-                        Button("Fechar") {
-                            showingSettings = false
-                        }
-                    }
-                    #else
-                    ToolbarItem(placement: .cancellationAction) {
-                        Button("Fechar") {
-                            showingSettings = false
-                        }
-                    }
-                    #endif
-                }
-        }
+        // ✅ Componente SettingsView implementado com 5 seções completas
+        SettingsView()
     }
     
     // MARK: - Action Handlers
