@@ -1,18 +1,20 @@
 import SwiftUI
 import CadaEuroKit  
 
-/// Estados simplificados do scanner - apenas essenciais
+/// Estados simplificados do scanner para fluxo manual de photo capture
 public enum ScannerState: Sendable, Equatable {
-    case idle
-    case processing
+    case idle        // Preview com botão de captura
+    case captured    // Foto tirada, pronta para OCR
+    case processing  // OCR em processamento
     case error(ScannerError)
     
-    /// Mensagem única durante processamento - sem detalhes técnicos
-    public var instructionText: String {
+    /// Feedback mínimo apenas quando necessário
+    public var feedbackText: String? {
         switch self {
-        case .idle: return "Aponte a câmara para a etiqueta"
-        case .processing: return "Um segundo... 🤔"
-        case .error: return "Ups, não consegui. Tente outra vez"
+        case .idle: return nil          // Sem texto no estado idle
+        case .captured: return nil      // Flash visual é suficiente
+        case .processing: return nil    // Loading spinner é suficiente
+        case .error: return "Tentar novamente?"  // Apenas em erro
         }
     }
 }
@@ -63,6 +65,8 @@ public struct ScannerOverlay: View {
     // MARK: - State
     @State private var scannerState: ScannerState = .idle
     @State private var currentError: ScannerError?
+    @State private var flashEnabled = false
+    @State private var isPressed = false
     
     // ✅ SwiftUI-Only: Removido - não precisamos mais calcular tamanho do frame
     // A câmera ocupa toda a tela como Apple Notes scanner
@@ -84,30 +88,28 @@ public struct ScannerOverlay: View {
             // Camera view (tela cheia) - sempre visível como background
             cameraBackground
             
-            // Overlays por cima da câmera conforme estado
+            // Overlays mínimos conforme estado
             stateOverlays
             
-            // Botão cancelar sempre visível no canto superior direito
-            cancelButton
+            // Controlos essenciais
+            essentialControls
         }
-        .ignoresSafeArea() // Tela cheia como Apple Notes scanner
+        .ignoresSafeArea() // Tela cheia como Apple Camera
+        .onTapGesture { location in
+            // Tap-to-focus como iOS Camera
+            handleTapToFocus(at: location)
+        }
         .captureErrorHandler(
             error: currentError?.asCaptureError,
-            onRetry: {
-                clearErrorAndRetry()
-            },
-            onCancel: {
-                clearErrorAndCancel()
-            },
-            onFallback: onFallbackToManual != nil ? {
-                clearErrorAndFallback()
-            } : nil
+            onRetry: { clearErrorAndRetry() },
+            onCancel: { clearErrorAndCancel() },
+            onFallback: onFallbackToManual != nil ? { clearErrorAndFallback() } : nil
         )
         .onAppear {
-            startScanning()
+            initializePreview()
         }
         .accessibilityLabel("Scanner de preços")
-        .accessibilityHint("Câmara em ecrã completo para captura")
+        .accessibilityHint("Toque para focar, botão para capturar")
     }
     
     // MARK: - Camera Background (Always Visible)
@@ -202,378 +204,218 @@ public struct ScannerOverlay: View {
     private var stateOverlays: some View {
         switch scannerState {
         case .idle:
-            // Apenas overlay sutil com frame/instruções
-            idleOverlay
+            // Zero overlay - câmera pura
+            EmptyView()
+            
+        case .captured:
+            // Apenas flash visual
+            capturedFlash
             
         case .processing:
-            // Loading overlay semi-transparente
-            processingOverlay
+            // Loading minimal
+            processingIndicator
             
         case .error:
-            // Error popup centrado
-            errorOverlay
+            // Error minimal
+            errorIndicator
         }
     }
     
     @ViewBuilder
-    private var idleOverlay: some View {
-        VStack(spacing: 0) {
-            // Área superior com instruções
-            VStack(spacing: themeProvider.theme.spacing.md) {
-                Text(scannerState.instructionText)
-                    .font(themeProvider.theme.typography.bodySmall)
-                    .fontWeight(.semibold)
-                    .foregroundColor(.white)
-                    .multilineTextAlignment(.center)
-                
-                Text("Mantenha o telemóvel estável e a etiqueta dentro do quadro")
-                    .font(themeProvider.theme.typography.bodyMedium)
-                    .foregroundColor(.white.opacity(0.8))
-                    .multilineTextAlignment(.center)
-                    .lineLimit(2)
-            }
-            .padding(.horizontal, themeProvider.theme.spacing.xl)
-            .padding(.top, 120) // Safe area + espaço para botão cancelar
-            .background(
-                LinearGradient(
-                    gradient: Gradient(colors: [
-                        .black.opacity(0.7),
-                        .black.opacity(0.3),
-                        .clear
-                    ]),
-                    startPoint: .top,
-                    endPoint: .bottom
-                )
-            )
-            
-            Spacer()
-            
-            // Frame de captura no centro
-            scanningFrame
-            
-            Spacer()
-            
-            // Área inferior com dicas
-            VStack(spacing: themeProvider.theme.spacing.sm) {
-                HStack(spacing: themeProvider.theme.spacing.sm) {
-                    Image(systemName: "lightbulb.fill")
-                        .font(.caption)
-                        .foregroundColor(.yellow.opacity(0.8))
-                    
-                    Text("Boa iluminação melhora a precisão")
-                        .font(themeProvider.theme.typography.bodySmall)
-                        .foregroundColor(.white.opacity(0.8))
-                }
-                
-                HStack(spacing: themeProvider.theme.spacing.sm) {
-                    Image(systemName: "target")
-                        .font(.caption)
-                        .foregroundColor(.blue.opacity(0.8))
-                    
-                    Text("Foque no preço e nome do produto")
-                        .font(themeProvider.theme.typography.bodySmall)
-                        .foregroundColor(.white.opacity(0.8))
-                }
-            }
-            .padding(.horizontal, themeProvider.theme.spacing.xl)
-            .padding(.bottom, 120) // Safe area + espaço
-            .background(
-                LinearGradient(
-                    gradient: Gradient(colors: [
-                        .clear,
-                        .black.opacity(0.3),
-                        .black.opacity(0.7)
-                    ]),
-                    startPoint: .top,
-                    endPoint: .bottom
-                )
-            )
-        }
+    private var capturedFlash: some View {
+        // Flash branco súbito - como iOS Camera
+        Color.white
+            .opacity(scannerState == .captured ? 1.0 : 0.0)
+            .animation(.easeOut(duration: 0.15), value: scannerState)
     }
     
     @ViewBuilder
-    private var processingOverlay: some View {
-        // Overlay escuro semi-transparente com loading customizado
-        ZStack {
-            Color.black.opacity(0.85)
-            
-            VStack(spacing: themeProvider.theme.spacing.xl) {
-                // Loading indicator customizado
-                ZStack {
-                    Circle()
-                        .stroke(
-                            AngularGradient(
-                                gradient: Gradient(colors: [
-                                    themeProvider.theme.colors.cadaEuroAccent,
-                                    themeProvider.theme.colors.cadaEuroAccent.opacity(0.3)
-                                ]),
-                                center: .center
-                            ),
-                            lineWidth: 4
-                        )
-                        .frame(width: 60, height: 60)
-                        .rotationEffect(.degrees(scannerState == .processing ? 360 : 0))
-                        .animation(.linear(duration: 1.5).repeatForever(autoreverses: false), value: scannerState)
-                    
-                    Image(systemName: "viewfinder")
-                        .font(.title2)
-                        .foregroundColor(themeProvider.theme.colors.cadaEuroAccent)
-                }
-                
-                VStack(spacing: themeProvider.theme.spacing.md) {
-                    Text(scannerState.instructionText)
-                        .font(themeProvider.theme.typography.bodySmall)
-                        .fontWeight(.medium)
-                        .foregroundColor(.white)
-                        .multilineTextAlignment(.center)
-                    
-                }
-                
-                // Barra de progresso simulada
-                ProgressView(value: 0.7)
-                    .progressViewStyle(LinearProgressViewStyle(tint: themeProvider.theme.colors.cadaEuroAccent))
-                    .frame(width: 200)
-            }
-            .padding(themeProvider.theme.spacing.xl)
-        }
-    }
-    
-    @ViewBuilder
-    private var errorOverlay: some View {
-        // Background escuro com blur
-        ZStack {
-            Color.black.opacity(0.6)
-                .blur(radius: 1)
-            
-            VStack {
-                Spacer()
-                
-                // Card de erro com Material Design
-                VStack(spacing: themeProvider.theme.spacing.xl) {
-                    // Ícone de erro animado
-                    ZStack {
-                        Circle()
-                            .fill(themeProvider.theme.colors.cadaEuroError.opacity(0.1))
-                            .frame(width: 80, height: 80)
-                        
-                        Image(systemName: "exclamationmark.triangle.fill")
-                            .font(.system(size: 40))
-                            .foregroundColor(themeProvider.theme.colors.cadaEuroError)
-                    }
-                    
-                    VStack(spacing: themeProvider.theme.spacing.md) {
-                        Text("Ops! Algo correu mal")
-                            .font(themeProvider.theme.typography.bodySmall)
-                            .fontWeight(.semibold)
-                            .foregroundColor(themeProvider.theme.colors.cadaEuroTextPrimary)
-                            .multilineTextAlignment(.center)
-                        
-                        Text(scannerState.instructionText)
-                            .font(themeProvider.theme.typography.bodyMedium)
-                            .foregroundColor(themeProvider.theme.colors.cadaEuroTextSecondary)
-                            .multilineTextAlignment(.center)
-                            .lineLimit(3)
-                    }
-                    
-                    // Botões de ação
-                    VStack(spacing: themeProvider.theme.spacing.md) {
-                        ActionButton(
-                            "Tentar Novamente",
-                            systemImage: "arrow.clockwise",
-                            type: .primary
-                        ) {
-                            clearErrorAndRetry()
-                        }
-                        
-                        if onFallbackToManual != nil {
-                            ActionButton(
-                                "Inserção Manual",
-                                systemImage: "keyboard",
-                                type: .secondary
-                            ) {
-                                clearErrorAndFallback()
-                            }
-                        }
-                        
-                        Button("Cancelar") {
-                            clearErrorAndCancel()
-                        }
-                        .font(themeProvider.theme.typography.bodyMedium)
-                        .foregroundColor(themeProvider.theme.colors.cadaEuroTextSecondary)
-                    }
-                }
-                .padding(themeProvider.theme.spacing.xl)
-                .background(
-                    RoundedRectangle(cornerRadius: themeProvider.theme.border.cardRadius)
-                        .fill(themeProvider.theme.colors.cadaEuroComponentBackground)
-                        .shadow(
-                            color: .black.opacity(0.3),
-                            radius: 20,
-                            x: 0,
-                            y: 10
-                        )
-                )
-                .padding(themeProvider.theme.spacing.xl)
-                
-                Spacer()
-            }
-        }
-    }
-    
-    @ViewBuilder
-    private var scanningFrame: some View {
-        ZStack {
-            // Frame principal com animação de pulse
-            RoundedRectangle(cornerRadius: 16)
-                .stroke(
-                    LinearGradient(
-                        gradient: Gradient(colors: [
-                            themeProvider.theme.colors.cadaEuroAccent,
-                            themeProvider.theme.colors.cadaEuroAccent.opacity(0.6)
-                        ]),
-                        startPoint: .topLeading,
-                        endPoint: .bottomTrailing
-                    ),
-                    lineWidth: 3
-                )
-                .frame(width: 320, height: 200)
-                .scaleEffect(scannerState == .idle ? 1.02 : 1.0)
-                .animation(.easeInOut(duration: 1.5).repeatForever(autoreverses: true), value: scannerState)
-            
-            // Linha de scan animada (movimenta verticalmente)
-            if scannerState == .idle {
-                Rectangle()
-                    .fill(
-                        LinearGradient(
-                            gradient: Gradient(colors: [
-                                .clear,
-                                themeProvider.theme.colors.cadaEuroAccent.opacity(0.8),
-                                themeProvider.theme.colors.cadaEuroAccent,
-                                themeProvider.theme.colors.cadaEuroAccent.opacity(0.8),
-                                .clear
-                            ]),
-                            startPoint: .leading,
-                            endPoint: .trailing
-                        )
-                    )
-                    .frame(width: 300, height: 2)
-                    .offset(y: scanAnimationOffset)
-                    .animation(.linear(duration: 2.0).repeatForever(autoreverses: true), value: scanAnimationOffset)
-                    .onAppear {
-                        scanAnimationOffset = -80
-                        withAnimation {
-                            scanAnimationOffset = 80
-                        }
-                    }
-            }
-            
-            // Cantos decorativos melhorados
-            VStack {
-                HStack {
-                    enhancedCornerIndicator
-                    Spacer()
-                    enhancedCornerIndicator.rotationEffect(.degrees(90))
-                }
-                Spacer()
-                HStack {
-                    enhancedCornerIndicator.rotationEffect(.degrees(-90))
-                    Spacer()
-                    enhancedCornerIndicator.rotationEffect(.degrees(180))
-                }
-            }
-            .frame(width: 320, height: 200)
-            .padding(12)
-            
-            // Texto central sutil
-            if scannerState == .idle {
-                Text("Etiqueta aqui")
-                    .font(themeProvider.theme.typography.bodySmall)
-                    .foregroundColor(.white.opacity(0.5))
-                    .background(
-                        Capsule()
-                            .fill(.black.opacity(0.3))
-                            .frame(height: 24)
-                    )
-                    .padding(.horizontal, 12)
-            }
-        }
-    }
-    
-    // Estado para animação da linha de scan
-    @State private var scanAnimationOffset: CGFloat = -80
-    
-    @ViewBuilder
-    private var enhancedCornerIndicator: some View {
-        ZStack {
-            // Canto exterior
-            VStack(spacing: 0) {
-                Rectangle()
-                    .fill(themeProvider.theme.colors.cadaEuroAccent)
-                    .frame(width: 25, height: 4)
-                Rectangle()
-                    .fill(themeProvider.theme.colors.cadaEuroAccent)
-                    .frame(width: 4, height: 25)
-            }
-            
-            // Brilho interno
-            VStack(spacing: 0) {
-                Rectangle()
-                    .fill(.white.opacity(0.3))
-                    .frame(width: 25, height: 2)
-                Rectangle()
-                    .fill(.white.opacity(0.3))
-                    .frame(width: 2, height: 25)
-            }
-        }
-    }
-    
-    @ViewBuilder
-    private var cancelButton: some View {
+    private var processingIndicator: some View {
         VStack {
+            Spacer()
+            
+            // Loading spinner mínimo
+            ZStack {
+                Circle()
+                    .stroke(.white.opacity(0.3), lineWidth: 3)
+                    .frame(width: 40, height: 40)
+                
+                Circle()
+                    .trim(from: 0, to: 0.3)
+                    .stroke(.white, lineWidth: 3)
+                    .frame(width: 40, height: 40)
+                    .rotationEffect(.degrees(scannerState == .processing ? 360 : 0))
+                    .animation(.linear(duration: 1.0).repeatForever(autoreverses: false), value: scannerState)
+            }
+            .padding(.bottom, 100)
+            
+            Spacer()
+        }
+    }
+    
+    @ViewBuilder
+    private var errorIndicator: some View {
+        VStack {
+            Spacer()
+            
+            // Error mínimo - apenas shake + retry
+            VStack(spacing: 16) {
+                Image(systemName: "exclamationmark.circle.fill")
+                    .font(.title)
+                    .foregroundColor(.red)
+                
+                if let errorText = scannerState.feedbackText {
+                    Text(errorText)
+                        .font(.caption)
+                        .foregroundColor(.white)
+                }
+                
+                Button("↻") {
+                    clearErrorAndRetry()
+                }
+                .font(.title2)
+                .foregroundColor(.white)
+                .frame(width: 44, height: 44)
+                .background(Circle().fill(.black.opacity(0.6)))
+            }
+            .padding(.bottom, 100)
+            
+            Spacer()
+        }
+    }
+    
+    @ViewBuilder
+    private var essentialControls: some View {
+        VStack {
+            // Top: Close button apenas
             HStack {
                 Spacer()
                 
                 Button(action: onCancel) {
                     Image(systemName: "xmark")
                         .font(.title2)
-                        .fontWeight(.semibold)
+                        .fontWeight(.medium)
                         .foregroundColor(.white)
                         .frame(width: 44, height: 44)
-                        .background(
-                            Circle()
-                                .fill(.black.opacity(0.6))
-                                .overlay(
-                                    Circle()
-                                        .stroke(.white.opacity(0.3), lineWidth: 1)
-                                )
-                        )
+                        .background(Circle().fill(.black.opacity(0.5)))
                 }
-                .accessibilityLabel("Fechar scanner")
+                .padding(.top, 60)
+                .padding(.trailing, 20)
             }
-            .padding(.top, 60) // Safe area + margin
-            .padding(.trailing, themeProvider.theme.spacing.lg)
             
             Spacer()
+            
+            // Bottom: Capture button + flash toggle
+            HStack {
+                // Flash toggle (esquerda)
+                if scannerState == .idle {
+                    Button(action: toggleFlash) {
+                        Image(systemName: flashEnabled ? "bolt.fill" : "bolt.slash.fill")
+                            .font(.title2)
+                            .foregroundColor(.white)
+                            .frame(width: 44, height: 44)
+                            .background(Circle().fill(.black.opacity(0.5)))
+                    }
+                }
+                
+                Spacer()
+                
+                // Capture button (centro)
+                if scannerState == .idle {
+                    Button(action: capturePhoto) {
+                        ZStack {
+                            Circle()
+                                .stroke(.white, lineWidth: 6)
+                                .frame(width: 80, height: 80)
+                            
+                            Circle()
+                                .fill(.white)
+                                .frame(width: 66, height: 66)
+                        }
+                    }
+                    .scaleEffect(isPressed ? 0.95 : 1.0)
+                    .onLongPressGesture(minimumDuration: 0, maximumDistance: .infinity, pressing: { pressing in
+                        withAnimation(.easeInOut(duration: 0.1)) {
+                            isPressed = pressing
+                        }
+                    }, perform: {})
+                }
+                
+                Spacer()
+                
+                // Placeholder para simetria
+                if scannerState == .idle {
+                    Color.clear
+                        .frame(width: 44, height: 44)
+                }
+            }
+            .padding(.bottom, 100)
         }
     }
     
-    // MARK: - Computed Properties
+
     
-    private var frameColor: Color {
-        return themeProvider.theme.colors.cadaEuroTextPrimary
-    }
+
+    
+
+    
+
+    
+
     
     // MARK: - Methods
     
-    private func startScanning() {
-        print("📊 Analytics: \(CaptureMethod.scanner.analyticsName) - scan_attempt")
+    /// Handle tap-to-focus gesture like iOS Camera app
+    private func handleTapToFocus(at location: CGPoint) {
+        // TODO: Implementar focus real da câmera quando integrar com AVFoundation
+        print("🎯 Focus tap at: \(location)")
+        
+        // Feedback visual sutil (opcional)
+        // Pode adicionar animação de círculo de focus no futuro
+    }
+    
+    /// Toggle flash on/off like iOS Camera app
+    private func toggleFlash() {
+        flashEnabled.toggle()
+        print("⚡ Flash toggled: \(flashEnabled ? "ON" : "OFF")")
+        
+        // TODO: Implementar controle real do flash quando integrar com AVFoundation
+    }
+    
+    private func initializePreview() {
+        print("📊 Analytics: \(CaptureMethod.scanner.analyticsName) - preview_started")
         
         scannerState = .idle
         currentError = nil
         
-        // Simular fluxo completo: idle → processing → success/error
-        DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
-            simulateScanning()
+        // Sem scanning automático - apenas preview
+        // O usuário controla quando capturar via botão
+    }
+    
+    private func capturePhoto() {
+        print("📊 Analytics: \(CaptureMethod.scanner.analyticsName) - capture_attempt")
+        
+        // Feedback tátil
+        // TODO: Adicionar HapticManager.shared.impact(.medium)
+        
+        // Transição: idle → captured → processing
+        scannerState = .captured
+        
+        // Simular captura da foto
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+            // Iniciar processamento OCR
+            processOCR()
+        }
+    }
+    
+    private func processOCR() {
+        print("📊 Analytics: \(CaptureMethod.scanner.analyticsName) - ocr_started")
+        
+        scannerState = .processing
+        
+        // Simular processamento OCR (substituir por VisionKit real)
+        DispatchQueue.main.asyncAfter(deadline: .now() + 2.5) {
+            simulateOCRResult()
         }
     }
     
@@ -601,7 +443,7 @@ public struct ScannerOverlay: View {
     
     private func clearErrorAndRetry() {
         currentError = nil
-        startScanning()
+        initializePreview()
     }
     
     private func clearErrorAndCancel() {
@@ -614,61 +456,56 @@ public struct ScannerOverlay: View {
         onFallbackToManual?()
     }
     
-    // MARK: - Simulation (substituir por VisionKit real)
+    // MARK: - OCR Simulation (substituir por VisionKit real)
     
-    private func simulateScanning() {
-        print("📊 Analytics: \(CaptureMethod.scanner.analyticsName) - processing_started")
+    private func simulateOCRResult() {
+        print("📊 Analytics: \(CaptureMethod.scanner.analyticsName) - ocr_processing")
         
-        // Entrar em modo processing (tela escura)
-        scannerState = .processing
+        let errorProbability = Double.random(in: 0...1)
         
-        DispatchQueue.main.asyncAfter(deadline: .now() + 3.0) {
-            let errorProbability = Double.random(in: 0...1)
+        if errorProbability > 0.75 { // 25% chance de erro
+            let errors: [ScannerError] = [
+                .recognitionFailed,
+                .processingTimeout,
+                .invalidData,
+                .networkUnavailable
+            ]
+            let randomError = errors.randomElement()!
+            print("📊 Analytics: \(CaptureMethod.scanner.analyticsName) - ocr_failed - \(randomError)")
+            handleError(randomError)
+        } else {
+            // Sucesso - produtos portugueses realistas
+            let mockProducts = [
+                ("Leite Mimosa Meio Gordo 1L", 1.29),
+                ("Pão de Forma Bimbo", 0.89), 
+                ("Iogurte Natural Danone", 2.49),
+                ("Queijo Flamengo Serra da Estrela", 3.99),
+                ("Azeite Virgem Extra Gallo", 4.29),
+                ("Água Luso 1.5L", 0.65),
+                ("Café Delta Torrado", 2.85),
+                ("Arroz Cigala Carolino", 1.95),
+                ("Bacalhau Ribeira Demolhado", 12.50),
+                ("Vinho Tinto Mateus", 3.45),
+                ("Massa Milaneza Esparguete", 0.75),
+                ("Atum Nuri em Conserva", 1.35),
+                ("Açúcar Sidul Branco", 1.15),
+                ("Manteiga Mimosa com Sal", 2.25),
+                ("Cereais Nestlé Chocapic", 3.85)
+            ]
             
-            if errorProbability > 0.7 { // 30% chance de erro
-                let errors: [ScannerError] = [
-                    .recognitionFailed,
-                    .processingTimeout,
-                    .invalidData,
-                    .networkUnavailable
-                ]
-                let randomError = errors.randomElement()!
-                print("📊 Analytics: \(CaptureMethod.scanner.analyticsName) - scan_failed - \(randomError)")
-                handleError(randomError)
-            } else {
-                // Sucesso - produtos portugueses realistas
-                let mockProducts = [
-                    ("Leite Mimosa Meio Gordo 1L", 1.29),
-                    ("Pão de Forma Bimbo", 0.89), 
-                    ("Iogurte Natural Danone", 2.49),
-                    ("Queijo Flamengo Serra da Estrela", 3.99),
-                    ("Azeite Virgem Extra Gallo", 4.29),
-                    ("Água Luso 1.5L", 0.65),
-                    ("Café Delta Torrado", 2.85),
-                    ("Arroz Cigala Carolino", 1.95),
-                    ("Bacalhau Ribeira Demolhado", 12.50),
-                    ("Vinho Tinto Mateus", 3.45),
-                    ("Massa Milaneza Esparguete", 0.75),
-                    ("Atum Nuri em Conserva", 1.35),
-                    ("Açúcar Sidul Branco", 1.15),
-                    ("Manteiga Mimosa com Sal", 2.25),
-                    ("Cereais Nestlé Chocapic", 3.85)
-                ]
-                
-                let (name, price) = mockProducts.randomElement()!
-                print("📊 Analytics: \(CaptureMethod.scanner.analyticsName) - scan_success - \(name)")
-                handleSuccess(name: name, price: price)
-            }
+            let (name, price) = mockProducts.randomElement()!
+            print("📊 Analytics: \(CaptureMethod.scanner.analyticsName) - ocr_success - \(name)")
+            handleSuccess(name: name, price: price)
         }
     }
 }
 
 // MARK: - Previews
 
-#Preview("Scanner with Error Recovery") {
+#Preview("Scanner with Manual Capture") {
     ScannerOverlay(
         onItemScanned: { productData in
-            print("Digitalizado: \(productData.name), €\(productData.price)")
+            print("Capturado: \(productData.name), €\(productData.price)")
         },
         onCancel: {
             print("Cancelado")
@@ -683,10 +520,10 @@ public struct ScannerOverlay: View {
     .themeProvider(.preview)
 }
 
-#Preview("Scanner Overlay - Idle") {
+#Preview("Scanner Overlay - Idle State") {
     ScannerOverlay(
         onItemScanned: { productData in
-            print("Digitalizado: \(productData.name), €\(productData.price)")
+            print("Capturado: \(productData.name), €\(productData.price)")
         },
         onCancel: {
             print("Cancelado")
@@ -695,7 +532,7 @@ public struct ScannerOverlay: View {
     .themeProvider(.preview)
 }
 
-#Preview("Scanner Overlay - Processing") {
+#Preview("Scanner Overlay - Processing State") {
     @Previewable @State var state: ScannerState = .processing
     
     ScannerOverlay(
@@ -705,7 +542,7 @@ public struct ScannerOverlay: View {
     .themeProvider(.preview)
 }
 
-#Preview("Scanner Overlay - Error") {
+#Preview("Scanner Overlay - Error State") {
     @Previewable @State var state: ScannerState = .error(.recognitionFailed)
     
     ScannerOverlay(
